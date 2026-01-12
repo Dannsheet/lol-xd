@@ -1,0 +1,209 @@
+import { supabase } from '../supabaseClient';
+
+const parseJsonSafely = async (res) => {
+  const text = await res.text().catch(() => '');
+  if (!text) return null;
+  const trimmed = String(text).trim();
+  if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html')) {
+    return { html: trimmed };
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { raw: text };
+  }
+};
+
+const API_BASE_URL = (() => {
+  try {
+    const raw = import.meta?.env?.VITE_BACKEND_URL || '';
+    return String(raw || '').replace(/\/$/, '');
+  } catch {
+    return '';
+  }
+})();
+
+export const apiFetch = async (path, { method = 'GET', body, headers: extraHeaders } = {}) => {
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data?.session?.access_token;
+
+  const headers = { Accept: 'application/json', ...(extraHeaders || {}) };
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+
+  const url = (() => {
+    if (/^https?:\/\//i.test(path)) return path;
+    if (!API_BASE_URL) return path;
+    if (String(path || '').startsWith('/')) return `${API_BASE_URL}${path}`;
+    return `${API_BASE_URL}/${path}`;
+  })();
+
+  const res = await fetch(url, {
+    method,
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  const payload = await parseJsonSafely(res);
+
+  if (!res.ok) {
+    const msg =
+      (payload && (payload.error || payload.message)) ||
+      (payload && payload.html ? `Endpoint no encontrado (${res.status})` : '') ||
+      (payload && typeof payload.raw === 'string' ? payload.raw : '') ||
+      `Request failed (${res.status})`;
+    const err = new Error(msg);
+    err.status = res.status;
+    err.payload = payload;
+    throw err;
+  }
+
+  return payload;
+};
+
+export const getMe = () => apiFetch('/api/me');
+
+export const getWalletHistory = () => apiFetch('/api/wallet/history');
+
+export const createDepositAddress = () => apiFetch('/api/deposit/address', { method: 'POST' });
+
+export const withdrawValidate = async (body) => {
+  const { data } = await supabase.auth.getSession();
+  const userId = data?.session?.user?.id;
+  if (!userId) throw new Error('Debes iniciar sesión');
+  return apiFetch('/api/withdraw/validate', { method: 'POST', body });
+};
+
+export const withdrawCreate = async (body) => {
+  const { data } = await supabase.auth.getSession();
+  const userId = data?.session?.user?.id;
+  if (!userId) throw new Error('Debes iniciar sesión');
+  return apiFetch('/api/withdraw/create', { method: 'POST', body });
+};
+
+export const getUserBalance = async () => {
+  try {
+    return await apiFetch('/api/user/balance');
+  } catch (e) {
+    if (e?.status !== 404) throw e;
+    const { data } = await supabase.auth.getSession();
+    const userId = data?.session?.user?.id;
+    if (!userId) throw new Error('Debes iniciar sesión');
+
+    const tryTables = [
+      { table: 'cuentas', col: 'user_id', field: 'balance' },
+      { table: 'cuentas', col: 'usuario_id', field: 'balance' },
+      { table: 'usuarios', col: 'id', field: 'balance' },
+    ];
+
+    let lastErr;
+    for (const cfg of tryTables) {
+      const { data: row, error } = await supabase
+        .from(cfg.table)
+        .select(cfg.field)
+        .eq(cfg.col, userId)
+        .maybeSingle();
+      if (error) {
+        lastErr = error;
+        continue;
+      }
+      const bal = Number(row?.[cfg.field] || 0);
+      return { saldo_interno: Number.isFinite(bal) ? bal : 0 };
+    }
+    throw new Error(lastErr?.message || 'No se pudo obtener el saldo');
+  }
+};
+
+export const createDepositRequest = async (body) => {
+  const resp = await apiFetch('/api/deposit/address', { method: 'POST', body });
+  const address =
+    resp?.address ||
+    resp?.payment_address ||
+    resp?.direccion ||
+    resp?.data?.address ||
+    resp?.data?.payment_address ||
+    '';
+  const network = resp?.network || resp?.red || resp?.data?.network || resp?.data?.red || '';
+
+  return {
+    message: 'Dirección de depósito generada',
+    data: {
+      payment_address: String(address || '').trim(),
+      network: String(network || '').trim(),
+    },
+  };
+};
+
+export const buyVip = (planId) => apiFetch('/api/vip/buy', { method: 'POST', body: { plan_id: planId } });
+
+export const getVipCurrent = async () => {
+  try {
+    return await apiFetch('/api/vip/current');
+  } catch (e) {
+    if (e?.status !== 404) throw e;
+    const { data } = await supabase.auth.getSession();
+    const userId = data?.session?.user?.id;
+    if (!userId) return { is_active: false };
+
+    const nowIso = new Date().toISOString();
+    const candidates = [
+      { table: 'suscripciones', col: 'usuario_id' },
+      { table: 'suscripciones', col: 'user_id' },
+      { table: 'subscriptions', col: 'user_id' },
+      { table: 'subscriptions', col: 'usuario_id' },
+    ];
+
+    let lastErr;
+    for (const c of candidates) {
+      const { data: row, error } = await supabase
+        .from(c.table)
+        .select('*')
+        .eq(c.col, userId)
+        .order('expires_at', { ascending: false })
+        .maybeSingle();
+      if (error) {
+        lastErr = error;
+        continue;
+      }
+
+      const expiresAt = row?.expires_at || row?.expira_en || row?.vence_en || null;
+      const isActiveFlag = row?.is_active ?? row?.activa ?? row?.activo;
+      const isActive = Boolean(isActiveFlag) && (!expiresAt || String(expiresAt) > nowIso);
+
+      return {
+        is_active: isActive,
+        expires_at: expiresAt,
+        plan: row?.plan || null,
+      };
+    }
+
+    throw new Error(lastErr?.message || 'No se pudo validar la suscripción');
+  }
+};
+
+export const vipActivate = async (planId) => {
+  try {
+    return await apiFetch('/api/vip/activate', { method: 'POST', body: { plan_id: planId } });
+  } catch (e) {
+    if (e?.status !== 404) throw e;
+    return apiFetch('/api/vip/buy', { method: 'POST', body: { plan_id: planId } });
+  }
+};
+
+export const getBalanceMovements = async () => {
+  try {
+    return await apiFetch('/api/balance/movements');
+  } catch (e) {
+    if (e?.status !== 404) throw e;
+    return apiFetch('/api/wallet/history');
+  }
+};
+
+export const getMyPlan = () => apiFetch('/api/suscripcion/mi-plan');
+
+export const getVideosStatus = () => apiFetch('/api/videos/status');
+
+export const verVideo = ({ video_id, calificacion } = {}) =>
+  apiFetch('/api/videos/ver', { method: 'POST', body: { video_id, calificacion } });
+
+export const getCuentaInfo = () => apiFetch('/api/cuenta/info');
