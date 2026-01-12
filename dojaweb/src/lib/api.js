@@ -38,6 +38,17 @@ export const apiFetch = async (path, { method = 'GET', body, headers: extraHeade
     return `${API_BASE_URL}/${path}`;
   })();
 
+  if (
+    import.meta.env.PROD &&
+    !API_BASE_URL &&
+    !/^https?:\/\//i.test(path) &&
+    String(path || '').startsWith('/api/')
+  ) {
+    throw new Error(
+      'Falta configurar VITE_BACKEND_URL en producción (Vercel). Debe ser, por ejemplo: https://lol-backend-production.up.railway.app'
+    );
+  }
+
   const res = await fetch(url, {
     method,
     headers,
@@ -47,8 +58,9 @@ export const apiFetch = async (path, { method = 'GET', body, headers: extraHeade
   const payload = await parseJsonSafely(res);
 
   if (!res.ok) {
+    const primary = payload && (payload.error || payload.message);
     const msg =
-      (payload && (payload.error || payload.message)) ||
+      (typeof primary === 'string' ? primary : primary ? JSON.stringify(primary) : '') ||
       (payload && payload.html ? `Endpoint no encontrado (${res.status})` : '') ||
       (payload && typeof payload.raw === 'string' ? payload.raw : '') ||
       `Request failed (${res.status})`;
