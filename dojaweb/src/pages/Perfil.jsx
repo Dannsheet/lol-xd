@@ -93,8 +93,8 @@ const Perfil = () => {
 
   return (
     <div className="min-h-full bg-doja-bg text-white p-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">A mi</h1>
+      <div className="relative flex items-center justify-between min-h-[32px]">
+        <h1 className="absolute left-1/2 -translate-x-1/2 text-2xl font-bold">A mi</h1>
         <button
           type="button"
           onClick={() => navigate('/dashboard')}

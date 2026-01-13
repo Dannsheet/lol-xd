@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Star } from 'lucide-react';
+import { Lock, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { getCuentaInfo, getMyPlan, getVideosStatus, verVideo } from '../../lib/api.js';
@@ -241,12 +241,14 @@ const Trailers = ({ perPage = 12 }) => {
       setItems([]);
       return;
     }
-    if (dailyStatus && dailyStatus.puede_ver === false) {
-      setItems([]);
-      return;
-    }
     fetchVideos();
   }, [dailyStatus, fetchVideos, vipActive, vipChecking]);
+
+  const unlockedVideoId = useMemo(() => {
+    if (!vipActive) return null;
+    if (dailyStatus && dailyStatus.puede_ver === false) return null;
+    return items?.[0]?.id ?? null;
+  }, [dailyStatus, items, vipActive]);
 
   return (
     <section className="trailers">
@@ -298,18 +300,26 @@ const Trailers = ({ perPage = 12 }) => {
         {items.map((item) => {
           const current = Number(ratings?.[String(item.id)] || 0);
           const rated = Boolean(ratings?.[String(item.id)]);
+          const isLocked = !vipActive || (unlockedVideoId != null && item.id !== unlockedVideoId) || unlockedVideoId == null;
 
           return (
-            <div key={item.id} className="trailers__card">
+            <div key={item.id} className={isLocked ? 'trailers__card trailers__card--locked' : 'trailers__card'}>
               <div className="trailers__videoWrap">
                 <video
-                  className="trailers__video"
-                  controls
+                  className={isLocked ? 'trailers__video trailers__video--locked' : 'trailers__video'}
+                  controls={!isLocked}
                   preload="metadata"
                   poster={item.poster}
                   src={item.url}
-                  onEnded={() => registerFirstView(item.id)}
+                  onEnded={isLocked ? undefined : () => registerFirstView(item.id)}
                 />
+
+                {isLocked ? (
+                  <div className="trailers__lockOverlay">
+                    <Lock className="trailers__lockIcon" />
+                    <div className="trailers__lockText">Solo puedes ver 1 video</div>
+                  </div>
+                ) : null}
               </div>
 
               <div className="trailers__meta">

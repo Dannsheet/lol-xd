@@ -40,19 +40,15 @@ const BottomTabBar = () => {
               key={tab.id}
               type="button"
               onClick={() => navigate(tab.to)}
-              className={
-                `min-w-[60px] px-2 py-1 flex flex-col items-center justify-center transition-all duration-200 ` +
-                (active ? 'text-doja-cyan font-semibold' : 'text-white/60 hover:text-doja-light-cyan')
-              }
+              className={active ? 'bottomtab__btn bottomtab__btn--active' : 'bottomtab__btn'}
               aria-label={tab.label}
             >
               <Icon
-                className={
-                  `w-6 h-6 mb-1 transition-all duration-200 transform ` +
-                  (active ? 'scale-110' : 'scale-100')
-                }
+                className={active ? 'bottomtab__icon bottomtab__icon--active' : 'bottomtab__icon'}
               />
-              <span className="text-xs sm:text-sm leading-none">{tab.label}</span>
+              <span className={active ? 'bottomtab__label bottomtab__label--active' : 'bottomtab__label'}>
+                {tab.label}
+              </span>
             </button>
           );
         })}

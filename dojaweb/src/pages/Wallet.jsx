@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { QrCode, RefreshCw, Send, Wallet as WalletIcon } from 'lucide-react';
+import { Copy, QrCode, RefreshCw, Send, Wallet as WalletIcon } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import {
   createDepositRequest,
@@ -42,9 +42,10 @@ const WalletPage = () => {
 
   const depositQrValue = useMemo(() => {
     if (!depositAddress) return '';
-    // Formato solicitado: bep20:0xabc...?token=USDT
-    return `bep20:${depositAddress}?token=USDT`;
-  }, [depositAddress]);
+    const raw = String(depositNetwork || '').trim().toUpperCase();
+    const scheme = raw ? raw.split('-')[0].toLowerCase() : 'bep20';
+    return `${scheme}:${depositAddress}?token=USDT`;
+  }, [depositAddress, depositNetwork]);
 
   const depositMemo = useMemo(() => {
     if (!deposit) return '';
@@ -63,7 +64,19 @@ const WalletPage = () => {
     return () => window.clearTimeout(id);
   }, [toast]);
 
-  const showToast = (type, message) => setToast({ type, message });
+  const showToast = useCallback((type, message) => setToast({ type, message }), []);
+
+  const handleCopy = useCallback(
+    async (value) => {
+      try {
+        await navigator.clipboard.writeText(String(value || ''));
+        showToast('success', 'Copiado');
+      } catch {
+        showToast('error', 'No se pudo copiar');
+      }
+    },
+    [showToast],
+  );
 
   const shouldOpenWithdrawFromNav = useMemo(() => Boolean(location?.state?.openWithdraw), [location?.state]);
 
@@ -133,8 +146,8 @@ const WalletPage = () => {
       showToast('error', 'Tu cuenta no está activa');
       return;
     }
-    if (!(balanceNumber > 0)) {
-      showToast('error', 'Saldo insuficiente');
+    if (!(balanceNumber >= 10)) {
+      showToast('error', 'El retiro mínimo es 10 USDT');
       return;
     }
     setWithdrawOpen(true);
@@ -212,6 +225,7 @@ const WalletPage = () => {
   const validateWithdrawForm = () => {
     const monto = Number(withdrawForm.monto);
     if (!Number.isFinite(monto) || monto <= 0) return 'Monto inválido';
+    if (monto < 10) return 'El retiro mínimo es 10 USDT';
     if (!withdrawForm.red) return 'Debes seleccionar una red';
     if (!withdrawForm.direccion.trim()) return 'Debes ingresar una dirección externa';
     if (!withdrawForm.pin.trim()) return 'Debes ingresar el PIN';
@@ -430,7 +444,7 @@ const WalletPage = () => {
           <button
             type="button"
             onClick={openWithdraw}
-            disabled={!isCuentaActiva || !(balanceNumber > 0)}
+            disabled={!isCuentaActiva || !(balanceNumber >= 10)}
             className="rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 p-4 text-left transition disabled:opacity-50"
           >
             <div className="flex items-center gap-2 text-white font-semibold">
@@ -447,8 +461,8 @@ const WalletPage = () => {
           </div>
         ) : null}
 
-        {isCuentaActiva && !(balanceNumber > 0) ? (
-          <div className="mt-3 text-[11px] text-yellow-300">Saldo insuficiente para retirar.</div>
+        {isCuentaActiva && !(balanceNumber >= 10) ? (
+          <div className="mt-3 text-[11px] text-yellow-300">Necesitas mínimo 10 USDT para retirar.</div>
         ) : null}
 
         {deposit && (
@@ -469,9 +483,50 @@ const WalletPage = () => {
               )}
               <div className="min-w-0">
                 <div className="text-[12px] text-white/60">Red</div>
-                <div className="text-[12px] text-white/90 font-mono break-all">{depositNetwork || '—'}</div>
+                <div className="mt-1 flex items-center gap-2">
+                  <div className="text-[12px] text-white/90 font-mono break-all">{depositNetwork || '—'}</div>
+                  {depositNetwork ? (
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(depositNetwork)}
+                      className="shrink-0 rounded-lg border border-white/10 bg-white/5 p-2 hover:bg-white/10 transition"
+                      aria-label="Copiar red"
+                    >
+                      <Copy className="w-4 h-4 text-white/70" />
+                    </button>
+                  ) : null}
+                </div>
                 <div className="mt-2 text-[12px] text-white/60">Dirección</div>
-                <div className="text-[12px] text-white/90 font-mono break-all">{depositAddress || '—'}</div>
+                <div className="mt-1 flex items-center gap-2">
+                  <div className="text-[12px] text-white/90 font-mono break-all">{depositAddress || '—'}</div>
+                  {depositAddress ? (
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(depositAddress)}
+                      className="shrink-0 rounded-lg border border-white/10 bg-white/5 p-2 hover:bg-white/10 transition"
+                      aria-label="Copiar dirección"
+                    >
+                      <Copy className="w-4 h-4 text-white/70" />
+                    </button>
+                  ) : null}
+                </div>
+
+                {depositQrValue ? (
+                  <>
+                    <div className="mt-2 text-[12px] text-white/60">Enlace</div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <div className="text-[12px] text-white/90 font-mono break-all">{depositQrValue}</div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(depositQrValue)}
+                        className="shrink-0 rounded-lg border border-white/10 bg-white/5 p-2 hover:bg-white/10 transition"
+                        aria-label="Copiar enlace"
+                      >
+                        <Copy className="w-4 h-4 text-white/70" />
+                      </button>
+                    </div>
+                  </>
+                ) : null}
                 {depositMemo ? (
                   <>
                     <div className="mt-2 text-[12px] text-white/60">Memo</div>
@@ -648,6 +703,8 @@ const WalletPage = () => {
                 >
                   <option value="BEP20-USDT">BEP20-USDT</option>
                   <option value="TRC20-USDT">TRC20-USDT</option>
+                  <option value="ETH-USDT">ETH-USDT</option>
+                  <option value="POLYGON-USDT">POLYGON-USDT</option>
                 </select>
               </div>
 

@@ -136,8 +136,8 @@ const VIP = () => {
 
   return (
     <div className="min-h-full bg-doja-bg text-white p-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">VIP</h1>
+      <div className="relative flex items-center justify-between min-h-[32px]">
+        <h1 className="absolute left-1/2 -translate-x-1/2 text-2xl font-bold">VIP</h1>
         <div className="flex items-center gap-3">
           <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-white/70">
             {activeSub?.plan_id ? String(activeSub?.nombre || activeSub?.plan_id) : 'Cuenta gratis'}

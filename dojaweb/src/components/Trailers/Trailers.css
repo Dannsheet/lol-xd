@@ -89,6 +89,7 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   background: rgba(0, 0, 0, 0.5);
+  position: relative;
 }
 
 .trailers__video {
@@ -96,6 +97,37 @@
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.trailers__video--locked {
+  filter: grayscale(1) brightness(0.7);
+}
+
+.trailers__card--locked {
+  opacity: 0.92;
+}
+
+.trailers__lockOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.trailers__lockIcon {
+  width: 28px;
+  height: 28px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.trailers__lockText {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .trailers__meta {
@@ -119,7 +151,7 @@
 }
 
 .trailers__star--on {
-  color: #8B5CF6;
+  color: #8b5cf6;
 }
 
 .trailers__starIcon {
@@ -178,15 +210,15 @@
   background: rgba(139, 92, 246, 0.22);
 }
 
- .trailers__pagination {
+.trailers__pagination {
   margin-top: 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
- }
+}
 
- .trailers__pageBtn {
+.trailers__pageBtn {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.14);
   color: rgba(255, 255, 255, 0.9);
@@ -194,14 +226,14 @@
   padding: 8px 12px;
   cursor: pointer;
   font-size: 12px;
- }
+}
 
- .trailers__pageBtn:disabled {
+.trailers__pageBtn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
- }
+}
 
- .trailers__pageInfo {
+.trailers__pageInfo {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.65);
- }
+}

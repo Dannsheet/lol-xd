@@ -59,7 +59,7 @@ const Invitar = () => {
 
   return (
     <div className="min-h-full bg-doja-bg text-white p-4">
-      <h1 className="text-2xl font-bold">Invitar a amigos</h1>
+      <h1 className="text-2xl font-bold text-center">Invitar a amigos</h1>
 
       {toast && (
         <div
