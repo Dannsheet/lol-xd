@@ -17,6 +17,7 @@ const VIP = () => {
   const [buyingPlanId, setBuyingPlanId] = useState(null);
   const [toast, setToast] = useState(null);
   const [loadError, setLoadError] = useState(null);
+  const [nowTs, setNowTs] = useState(() => Date.now());
 
   useEffect(() => {
     if (!toast) return;
@@ -24,7 +25,37 @@ const VIP = () => {
     return () => window.clearTimeout(id);
   }, [toast]);
 
-  const showToast = (type, message) => setToast({ type, message });
+  const showToast = useCallback((type, message) => setToast({ type, message }), []);
+
+  const activeExpiryDate = useMemo(() => {
+    const raw =
+      activeSub?.expira_en ||
+      activeSub?.expires_at ||
+      activeSub?.vence_en ||
+      activeSub?.expiresAt ||
+      null;
+    if (!raw) return null;
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return null;
+    return d;
+  }, [activeSub]);
+
+  useEffect(() => {
+    if (!activeSub?.plan_id || !activeExpiryDate) return;
+    setNowTs(Date.now());
+    const id = window.setInterval(() => setNowTs(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [activeExpiryDate, activeSub?.plan_id]);
+
+  const activeCountdown = useMemo(() => {
+    if (!activeSub?.plan_id || !activeExpiryDate) return null;
+    const diffMs = Math.max(0, activeExpiryDate.getTime() - Number(nowTs || 0));
+    const totalMinutes = Math.floor(diffMs / 60000);
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const minutes = totalMinutes % 60;
+    return { days, hours, minutes, diffMs };
+  }, [activeExpiryDate, activeSub?.plan_id, nowTs]);
 
   const vipDailyByLevel = useMemo(
     () => ({
@@ -93,7 +124,7 @@ const VIP = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [showToast, user]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -137,10 +168,12 @@ const VIP = () => {
   return (
     <div className="min-h-full bg-doja-bg text-white p-4">
       <div className="relative flex items-center justify-between min-h-[32px]">
-        <h1 className="absolute left-1/2 -translate-x-1/2 text-2xl font-bold">VIP</h1>
+        <h1 className="pageTitleNeon absolute left-1/2 -translate-x-1/2 text-2xl font-bold">VIP</h1>
         <div className="flex items-center gap-3">
-          <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-white/70">
-            {activeSub?.plan_id ? String(activeSub?.nombre || activeSub?.plan_id) : 'Cuenta gratis'}
+          <div className="vipStatusPill" aria-label="Estado de suscripción">
+            <span className="vipStatusPill__text">
+              {activeSub?.plan_id ? String(activeSub?.nombre || activeSub?.plan_id) : 'Cuenta gratis'}
+            </span>
           </div>
           <button
             type="button"
@@ -188,16 +221,24 @@ const VIP = () => {
 
       {activeSub?.plan_id && (
         <div className="mt-4 rounded-2xl border border-doja-cyan/30 bg-doja-cyan/10 p-4">
-          <div className="flex items-center gap-2 text-doja-cyan font-semibold">
+          {activeCountdown ? (
+            <div className="text-center">
+              <div className="text-[12px] text-white/70">Tu suscripción termina en</div>
+              <div className="mt-1 text-2xl font-extrabold text-doja-cyan">
+                {activeCountdown.days}d {String(activeCountdown.hours).padStart(2, '0')}h{' '}
+                {String(activeCountdown.minutes).padStart(2, '0')}m
+              </div>
+            </div>
+          ) : null}
+
+          <div className="mt-3 flex items-center gap-2 text-doja-cyan font-semibold">
             <CheckCircle2 className="w-5 h-5" />
             Suscripción activa
           </div>
           <div className="mt-2 text-sm text-white/80">
             Plan: <span className="font-mono">{activeSub?.nombre || activeSub?.plan_id || '—'}</span>
           </div>
-          <div className="mt-1 text-xs text-white/60">
-            Expira: {activeSub?.expira_en ? new Date(activeSub.expira_en).toLocaleString() : '—'}
-          </div>
+          <div className="mt-1 text-xs text-white/60">Expira: {activeExpiryDate ? activeExpiryDate.toLocaleString() : '—'}</div>
         </div>
       )}
 
@@ -222,42 +263,51 @@ const VIP = () => {
               const price = Number(plan?.precio || meta?.price || 0);
               const daily = Number.isFinite(Number(plan?.ganancia_diaria)) ? Number(plan?.ganancia_diaria) : meta?.daily;
               const isBuying = buyingPlanId === plan.id;
+              const isDisabled = Boolean(activeSub?.plan_id) || isBuying;
 
               return (
                 <div key={plan.id} className="rounded-2xl border border-white/10 bg-doja-dark/70 p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Crown className="w-5 h-5 text-doja-cyan" />
-                        <div className="text-lg font-semibold">{plan.nombre}</div>
-                      </div>
-                      <div className="mt-2 text-sm text-white/70">
-                        Precio: <span className="text-doja-cyan font-semibold">${Number(price).toFixed(2)}</span>
-                      </div>
-                      {typeof daily === 'number' && (
-                        <div className="mt-1 text-sm text-white/70">
-                          Diario: <span className="text-doja-cyan font-semibold">${daily}</span>
-                        </div>
-                      )}
-                      {plan?.limite_tareas != null && (
-                        <div className="mt-1 text-xs text-white/60">Límite de tareas: {plan.limite_tareas}</div>
-                      )}
-                    </div>
+                  <button
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={() => handleBuy(plan)}
+                    className={
+                      'w-full rounded-xl py-3 text-sm font-extrabold transition ' +
+                      (activeSub?.plan_id
+                        ? 'bg-white/5 border border-white/10 text-white/40 cursor-not-allowed'
+                        : 'bg-[rgba(139,92,246,0.95)] text-white shadow-[0_0_18px_rgba(139,92,246,0.65),0_0_48px_rgba(139,92,246,0.35)] hover:bg-[rgba(139,92,246,1)] hover:shadow-[0_0_26px_rgba(139,92,246,0.85),0_0_62px_rgba(139,92,246,0.45)]')
+                    }
+                  >
+                    {isBuying ? 'Procesando...' : 'Suscribirse'}
+                  </button>
 
-                    <button
-                      type="button"
-                      disabled={Boolean(activeSub?.plan_id) || isBuying}
-                      onClick={() => handleBuy(plan)}
-                      className={
-                        'shrink-0 rounded-xl px-4 py-3 text-sm font-semibold transition border ' +
-                        (activeSub?.plan_id
-                          ? 'bg-white/5 border-white/10 text-white/40 cursor-not-allowed'
-                          : 'bg-doja-cyan/20 hover:bg-doja-cyan/30 border-doja-cyan/40 text-doja-cyan')
-                      }
-                    >
-                      {isBuying ? 'Procesando...' : 'Suscribirse'}
-                    </button>
+                  <div className="mt-3 text-center text-[12px] text-white/70">
+                    Compra para recibir las siguientes ganancias
                   </div>
+
+                  <div className="mt-4 flex items-center justify-center gap-2">
+                    <Crown className="w-5 h-5 text-doja-cyan" />
+                    <div className="text-lg font-semibold">{plan.nombre}</div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
+                      <div className="text-[11px] text-white/60">Precio</div>
+                      <div className="mt-1 text-base font-extrabold text-doja-cyan">${Number(price).toFixed(2)}</div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
+                      <div className="text-[11px] text-white/60">Ganancia diaria</div>
+                      <div className="mt-1 text-base font-extrabold text-doja-cyan">
+                        {typeof daily === 'number' ? `$${daily}` : '—'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {plan?.limite_tareas != null ? (
+                    <div className="mt-3 text-center text-xs text-white/60">
+                      Límite de tareas: {plan.limite_tareas}
+                    </div>
+                  ) : null}
                 </div>
               );
             })}

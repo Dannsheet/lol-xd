@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Copy, QrCode, RefreshCw, Send, Wallet as WalletIcon } from 'lucide-react';
-import { QRCodeCanvas } from 'qrcode.react';
 import {
   createDepositRequest,
   getCuentaInfo,
@@ -472,15 +471,6 @@ const WalletPage = () => {
               Dirección de depósito
             </div>
             <div className="mt-3 flex items-start gap-4">
-              {depositAddress ? (
-                <div className="shrink-0 rounded-xl bg-white p-2">
-                  <QRCodeCanvas value={depositQrValue || depositAddress} size={120} includeMargin />
-                </div>
-              ) : (
-                <div className="shrink-0 rounded-xl bg-white/10 border border-white/10 p-2 w-[136px] h-[136px] flex items-center justify-center text-[12px] text-white/70">
-                  —
-                </div>
-              )}
               <div className="min-w-0">
                 <div className="text-[12px] text-white/60">Red</div>
                 <div className="mt-1 flex items-center gap-2">

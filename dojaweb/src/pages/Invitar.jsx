@@ -2,12 +2,14 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Copy } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useAuth } from '../hooks/useAuth';
+import { getMyReferralProfile } from '../lib/api.js';
 import './Invitar.css';
 
 const Invitar = () => {
   const { user } = useAuth();
 
   const [toast, setToast] = useState(null);
+  const [serverInviteCode, setServerInviteCode] = useState('');
 
   useEffect(() => {
     if (!toast) return;
@@ -15,11 +17,29 @@ const Invitar = () => {
     return () => window.clearTimeout(id);
   }, [toast]);
 
+  useEffect(() => {
+    let alive = true;
+    const run = async () => {
+      try {
+        const resp = await getMyReferralProfile();
+        const code = String(resp?.invite_code || resp?.inviteCode || '').trim();
+        if (alive && code) setServerInviteCode(code);
+      } catch {
+        // ignore
+      }
+    };
+    run();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const showToast = useCallback((type, message) => {
     setToast({ type, message });
   }, []);
 
   const inviteCode = useMemo(() => {
+    if (serverInviteCode) return serverInviteCode;
     const raw =
       user?.user_metadata?.invite_code ||
       user?.user_metadata?.ref_code ||
@@ -37,7 +57,7 @@ const Invitar = () => {
     let h = 0;
     for (let i = 0; i < seed.length; i += 1) h = (h * 31 + seed.charCodeAt(i)) % 1000000;
     return String(h).padStart(6, '0');
-  }, [user?.email, user?.id, user?.user_metadata]);
+  }, [serverInviteCode, user?.email, user?.id, user?.user_metadata]);
 
   const inviteLink = useMemo(() => {
     if (!inviteCode) return '';
@@ -59,7 +79,7 @@ const Invitar = () => {
 
   return (
     <div className="min-h-full bg-doja-bg text-white p-4">
-      <h1 className="text-2xl font-bold text-center">Invitar a amigos</h1>
+      <h1 className="pageTitleNeon text-2xl font-bold text-center">INVITAR AMIGOS</h1>
 
       {toast && (
         <div

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
+import { linkReferral } from '../../lib/api.js';
 
 const Auth = () => {
   const VISIT_KEY = 'doja_auth_has_visited';
+  const PENDING_INVITE_KEY = 'doja_pending_invite_code';
 
   const formatSupabaseError = (err) => {
     if (!err) return 'Error desconocido';
@@ -54,6 +56,40 @@ const Auth = () => {
   }, []);
 
   useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      const ref = String(params.get('ref') || '').trim();
+      if (ref && !invitationCode) {
+        setInvitationCode(ref);
+      }
+    } catch {
+      // ignore
+    }
+  }, [invitationCode]);
+
+  const consumePendingInviteCode = async () => {
+    let code = '';
+    try {
+      code = String(localStorage.getItem(PENDING_INVITE_KEY) || '').trim();
+    } catch {
+      code = '';
+    }
+
+    if (!code) return;
+
+    try {
+      await linkReferral(code);
+      try {
+        localStorage.removeItem(PENDING_INVITE_KEY);
+      } catch {
+        // ignore
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
     if (!toast) return;
     const id = window.setTimeout(() => setToast(null), 3500);
     return () => window.clearTimeout(id);
@@ -72,7 +108,10 @@ const Auth = () => {
       if (error) {
         console.error('signInWithPassword error:', error);
         showToast('error', formatSupabaseError(error));
+        return;
       }
+
+      await consumePendingInviteCode();
     } catch (err) {
       console.error('signInWithPassword exception:', err);
       showToast('error', formatSupabaseError(err));
@@ -105,7 +144,29 @@ const Auth = () => {
         return;
       }
 
+      const pending = invitationCode.trim();
+      if (pending) {
+        try {
+          localStorage.setItem(PENDING_INVITE_KEY, pending);
+        } catch {
+          // ignore
+        }
+      }
+
       if (data?.session) {
+        try {
+          if (pending) {
+            await linkReferral(pending);
+            try {
+              localStorage.removeItem(PENDING_INVITE_KEY);
+            } catch {
+              // ignore
+            }
+          }
+        } catch {
+          // ignore
+        }
+
         showToast('success', 'Registro exitoso');
         return;
       }

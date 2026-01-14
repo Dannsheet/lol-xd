@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Copy, Headset, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { getCuentaInfo } from '../lib/api.js';
+import { getCuentaInfo, getMyReferralProfile } from '../lib/api.js';
 import './Perfil.css';
 
 const Perfil = () => {
@@ -13,6 +13,7 @@ const Perfil = () => {
   const [toast, setToast] = useState(null);
   const [saldo, setSaldo] = useState(0);
   const [totalGanado, setTotalGanado] = useState(0);
+  const [serverInviteCode, setServerInviteCode] = useState('');
 
   useEffect(() => {
     if (!toast) return;
@@ -20,11 +21,29 @@ const Perfil = () => {
     return () => window.clearTimeout(id);
   }, [toast]);
 
+  useEffect(() => {
+    let alive = true;
+    const run = async () => {
+      try {
+        const resp = await getMyReferralProfile();
+        const code = String(resp?.invite_code || resp?.inviteCode || '').trim();
+        if (alive && code) setServerInviteCode(code);
+      } catch {
+        // ignore
+      }
+    };
+    run();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const showToast = useCallback((type, message) => {
     setToast({ type, message });
   }, []);
 
   const inviteCode = useMemo(() => {
+    if (serverInviteCode) return serverInviteCode;
     const raw =
       user?.user_metadata?.invite_code ||
       user?.user_metadata?.ref_code ||
@@ -42,7 +61,7 @@ const Perfil = () => {
     let h = 0;
     for (let i = 0; i < seed.length; i += 1) h = (h * 31 + seed.charCodeAt(i)) % 1000000;
     return String(h).padStart(6, '0');
-  }, [user?.email, user?.id, user?.user_metadata]);
+  }, [serverInviteCode, user?.email, user?.id, user?.user_metadata]);
 
   const handleCopy = useCallback(
     async (value) => {
@@ -91,10 +110,18 @@ const Perfil = () => {
     [saldo, totalGanado],
   );
 
+  const neonCyanStyle = useMemo(
+    () => ({
+      color: 'rgb(49, 241, 199)',
+      textShadow: '0 0 12px rgba(49, 241, 199, 0.75), 0 0 38px rgba(49, 241, 199, 0.4)',
+    }),
+    [],
+  );
+
   return (
     <div className="min-h-full bg-doja-bg text-white p-4">
       <div className="relative flex items-center justify-between min-h-[32px]">
-        <h1 className="absolute left-1/2 -translate-x-1/2 text-2xl font-bold">A mi</h1>
+        <h1 className="pageTitleNeon absolute left-1/2 -translate-x-1/2 text-2xl font-bold">A MI</h1>
         <button
           type="button"
           onClick={() => navigate('/dashboard')}
@@ -146,7 +173,7 @@ const Perfil = () => {
         {metrics.map((m) => (
           <div key={m.label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="text-[12px] text-white/60 leading-tight">{m.label}</div>
-            <div className="mt-2 text-lg font-semibold" style={{ color: '#31f1c7' }}>
+            <div className="mt-2 text-lg font-semibold" style={neonCyanStyle}>
               {loading ? '—' : m.value}
             </div>
           </div>

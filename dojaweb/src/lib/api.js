@@ -219,3 +219,12 @@ export const verVideo = ({ video_id, calificacion } = {}) =>
   apiFetch('/api/videos/ver', { method: 'POST', body: { video_id, calificacion } });
 
 export const getCuentaInfo = () => apiFetch('/api/cuenta/info');
+
+export const linkReferral = (invite_code) =>
+  apiFetch('/api/referrals/link', { method: 'POST', body: { invite_code } });
+
+export const getMyReferrals = () => apiFetch('/api/referrals/me/referrals');
+
+export const getMyCommissions = () => apiFetch('/api/referrals/me/commissions');
+
+export const getMyReferralProfile = () => apiFetch('/api/referrals/me/profile');

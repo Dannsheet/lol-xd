@@ -198,16 +198,19 @@
   width: 100%;
   border-radius: 12px;
   padding: 10px 12px;
-  background: rgba(139, 92, 246, 0.16);
-  border: 1px solid rgba(139, 92, 246, 0.35);
-  color: rgba(139, 92, 246, 0.95);
+  background: rgba(139, 92, 246, 0.95);
+  border: 1px solid rgba(139, 92, 246, 0.65);
+  color: rgba(255, 255, 255, 0.98);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 0 18px rgba(139, 92, 246, 0.65), 0 0 62px rgba(139, 92, 246, 0.4);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.35);
 }
 
 .trailers__lockedCta:hover {
-  background: rgba(139, 92, 246, 0.22);
+  background: rgba(139, 92, 246, 1);
+  box-shadow: 0 0 26px rgba(139, 92, 246, 0.85), 0 0 78px rgba(139, 92, 246, 0.5);
 }
 
 .trailers__pagination {
