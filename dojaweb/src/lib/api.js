@@ -33,6 +33,7 @@ export const apiFetch = async (path, { method = 'GET', body, headers: extraHeade
 
   const url = (() => {
     if (/^https?:\/\//i.test(path)) return path;
+    if (String(path || '').startsWith('/api/pexels')) return path;
     if (!API_BASE_URL) return path;
     if (String(path || '').startsWith('/')) return `${API_BASE_URL}${path}`;
     return `${API_BASE_URL}/${path}`;
