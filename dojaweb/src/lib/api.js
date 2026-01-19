@@ -146,6 +146,9 @@ export const createDepositRequest = async (body) => {
   };
 };
 
+export const createVipIntent = (planId) =>
+  apiFetch('/api/vip/intent', { method: 'POST', body: { plan_id: planId } });
+
 export const buyVip = (planId) => apiFetch('/api/vip/buy', { method: 'POST', body: { plan_id: planId } });
 
 export const getVipCurrent = async () => {

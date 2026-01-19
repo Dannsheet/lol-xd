@@ -3,7 +3,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Copy, QrCode, RefreshCw, Send, Wallet as WalletIcon } from 'lucide-react';
 import {
   createDepositRequest,
+  createVipIntent,
   getCuentaInfo,
+  getVipCurrent,
   withdrawCreate,
   withdrawValidate,
 } from '../lib/api.js';
@@ -28,6 +30,7 @@ const WalletPage = () => {
   const [pollingActive, setPollingActive] = useState(false);
 
   const lastBalanceRef = useRef(0);
+  const lastVipIntentPlanIdRef = useRef(null);
 
   const depositNetwork = useMemo(() => {
     if (!deposit) return '';
@@ -119,6 +122,26 @@ const WalletPage = () => {
     lastBalanceRef.current = Number(saldoInterno || 0);
   }, [saldoInterno]);
 
+  const vipPlanIdFromNav = useMemo(() => {
+    const raw = location?.state?.vipPlanId;
+    const n = Number.parseInt(String(raw ?? '').trim(), 10);
+    return Number.isFinite(n) ? n : null;
+  }, [location?.state?.vipPlanId]);
+
+  useEffect(() => {
+    if (!vipPlanIdFromNav) return;
+    if (lastVipIntentPlanIdRef.current === vipPlanIdFromNav) return;
+    lastVipIntentPlanIdRef.current = vipPlanIdFromNav;
+
+    createVipIntent(vipPlanIdFromNav)
+      .then(() => {
+        showToast('success', 'Plan seleccionado. Deposita para activar tu VIP.');
+      })
+      .catch((e) => {
+        console.error('[Wallet] create vip intent error', e);
+      });
+  }, [showToast, vipPlanIdFromNav]);
+
   const balanceNumber = useMemo(() => Number(saldoInterno || 0), [saldoInterno]);
   const formattedBalance = useMemo(() => Number(saldoInterno || 0).toFixed(2), [saldoInterno]);
 
@@ -191,6 +214,21 @@ const WalletPage = () => {
       const prev = lastBalanceRef.current;
       const res = await loadCuenta();
       const next = Number(res?.balance);
+
+      let vipActive = false;
+      try {
+        const vip = await getVipCurrent();
+        vipActive = Boolean(vip?.is_active);
+      } catch (e) {
+        // ignore
+      }
+
+      if (vipActive) {
+        setPollingActive(false);
+        showToast('success', 'Suscripción activada');
+        return;
+      }
+
       if (Number.isFinite(next) && next > prev) {
         setPollingActive(false);
         showToast('success', 'Balance actualizado');
@@ -214,6 +252,10 @@ const WalletPage = () => {
         if (Number.isFinite(next) && next > prev) {
           setPollingActive(false);
         }
+      }).then(() => {
+        return getVipCurrent().then((vip) => {
+          if (vip?.is_active) setPollingActive(false);
+        });
       }).catch(() => {
         // ignore
       });

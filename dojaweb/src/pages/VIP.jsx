@@ -3,7 +3,7 @@ import { CheckCircle2, Crown, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../hooks/useAuth';
-import { buyVip, getCuentaInfo, getMyPlan } from '../lib/api.js';
+import { buyVip, createVipIntent, getCuentaInfo, getMyPlan } from '../lib/api.js';
 import './VIP.css';
 
 const VIP = () => {
@@ -143,7 +143,12 @@ const VIP = () => {
     const price = Number(plan?.precio || 0);
     if (Number(balance || 0) < price) {
       showToast('error', 'Saldo insuficiente. Recarga tu billetera para comprar este plan.');
-      navigate('/wallet');
+      try {
+        await createVipIntent(plan.id);
+      } catch (e) {
+        console.error('[VIP] create intent error', e);
+      }
+      navigate('/wallet', { state: { vipPlanId: plan.id } });
       return;
     }
 
