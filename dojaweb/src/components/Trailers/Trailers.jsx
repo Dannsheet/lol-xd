@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Lock, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { getCuentaInfo, getMyPlan, getVideosStatus, verVideo } from '../../lib/api.js';
+import { apiFetch, getCuentaInfo, getMyPlan, getVideosStatus, verVideo } from '../../lib/api.js';
 import './Trailers.css';
 
 const getBestMp4File = (videoFiles = []) => {
@@ -76,12 +76,16 @@ const Trailers = ({ perPage = 12 }) => {
   };
 
   const fetchJson = async (url) => {
-    const res = await fetch(url);
-    if (res.ok) return res.json();
-    const text = await res.text().catch(() => '');
-    const err = new Error(`Pexels API error ${res.status} ${text.slice(0, 300)}`);
-    err.status = res.status;
-    throw err;
+    try {
+      return await apiFetch(url);
+    } catch (e) {
+      const status = e?.status;
+      const msg = String(e?.message || '');
+      const err = new Error(msg || `Pexels API error ${status || ''}`.trim());
+      err.status = status;
+      err.payload = e?.payload;
+      throw err;
+    }
   };
 
   const registerFirstView = useCallback(
