@@ -219,8 +219,8 @@ export const getMyPlan = () => apiFetch('/api/suscripcion/mi-plan');
 
 export const getVideosStatus = () => apiFetch('/api/videos/status');
 
-export const verVideo = ({ video_id, calificacion } = {}) =>
-  apiFetch('/api/videos/ver', { method: 'POST', body: { video_id, calificacion } });
+export const verVideo = ({ video_id, calificacion, plan_id } = {}) =>
+  apiFetch('/api/videos/ver', { method: 'POST', body: { video_id, calificacion, plan_id } });
 
 export const getCuentaInfo = () => apiFetch('/api/cuenta/info');
 
@@ -232,3 +232,11 @@ export const getMyReferrals = () => apiFetch('/api/referrals/me/referrals');
 export const getMyCommissions = () => apiFetch('/api/referrals/me/commissions');
 
 export const getMyReferralProfile = () => apiFetch('/api/referrals/me/profile');
+
+export const getMyReferralStats = () => apiFetch('/api/referrals/me/stats');
+
+export const getMyReferralMembers = (level) => {
+  const n = Number(level);
+  const q = Number.isFinite(n) && n > 0 ? `?level=${encodeURIComponent(String(n))}` : '';
+  return apiFetch(`/api/referrals/me/members${q}`);
+};

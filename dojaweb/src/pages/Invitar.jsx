@@ -10,6 +10,7 @@ const Invitar = () => {
 
   const [toast, setToast] = useState(null);
   const [serverInviteCode, setServerInviteCode] = useState('');
+  const [inviteCodeLoading, setInviteCodeLoading] = useState(true);
 
   useEffect(() => {
     if (!toast) return;
@@ -21,43 +22,27 @@ const Invitar = () => {
     let alive = true;
     const run = async () => {
       try {
+        setInviteCodeLoading(true);
         const resp = await getMyReferralProfile();
         const code = String(resp?.invite_code || resp?.inviteCode || '').trim();
         if (alive && code) setServerInviteCode(code);
       } catch {
         // ignore
+      } finally {
+        if (alive) setInviteCodeLoading(false);
       }
     };
     run();
     return () => {
       alive = false;
     };
-  }, []);
+  }, [user?.id]);
 
   const showToast = useCallback((type, message) => {
     setToast({ type, message });
   }, []);
 
-  const inviteCode = useMemo(() => {
-    if (serverInviteCode) return serverInviteCode;
-    const raw =
-      user?.user_metadata?.invite_code ||
-      user?.user_metadata?.ref_code ||
-      user?.user_metadata?.referral_code ||
-      user?.user_metadata?.codigo_invitacion ||
-      user?.user_metadata?.invitation_code ||
-      '';
-
-    const clean = String(raw || '').trim();
-    if (clean) return clean;
-
-    const seed = String(user?.id || user?.email || '');
-    if (!seed) return '';
-
-    let h = 0;
-    for (let i = 0; i < seed.length; i += 1) h = (h * 31 + seed.charCodeAt(i)) % 1000000;
-    return String(h).padStart(6, '0');
-  }, [serverInviteCode, user?.email, user?.id, user?.user_metadata]);
+  const inviteCode = useMemo(() => (serverInviteCode ? serverInviteCode : ''), [serverInviteCode]);
 
   const inviteLink = useMemo(() => {
     if (!inviteCode) return '';
@@ -98,11 +83,12 @@ const Invitar = () => {
         <div className="text-sm text-white/70">Código de invitación</div>
         <div className="mt-2 flex items-center gap-2">
           <div className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold">
-            {inviteCode || '—'}
+            {inviteCodeLoading ? '—' : inviteCode || '—'}
           </div>
           <button
             type="button"
             onClick={() => handleCopy(inviteCode)}
+            disabled={inviteCodeLoading || !inviteCode}
             className="shrink-0 rounded-xl border border-white/10 bg-white/5 p-3 hover:bg-white/10 transition"
             aria-label="Copiar código"
           >

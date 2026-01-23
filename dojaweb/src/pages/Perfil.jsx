@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Copy, Headset, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { getCuentaInfo, getMyReferralProfile } from '../lib/api.js';
+import { getCuentaInfo, getMyReferralProfile, getMyReferralStats } from '../lib/api.js';
 import './Perfil.css';
 
 const Perfil = () => {
@@ -13,7 +13,10 @@ const Perfil = () => {
   const [toast, setToast] = useState(null);
   const [saldo, setSaldo] = useState(0);
   const [totalGanado, setTotalGanado] = useState(0);
+  const [totalComisiones, setTotalComisiones] = useState(0);
+  const [comisionesError, setComisionesError] = useState('');
   const [serverInviteCode, setServerInviteCode] = useState('');
+  const [inviteCodeLoading, setInviteCodeLoading] = useState(true);
 
   useEffect(() => {
     if (!toast) return;
@@ -25,43 +28,27 @@ const Perfil = () => {
     let alive = true;
     const run = async () => {
       try {
+        setInviteCodeLoading(true);
         const resp = await getMyReferralProfile();
         const code = String(resp?.invite_code || resp?.inviteCode || '').trim();
         if (alive && code) setServerInviteCode(code);
       } catch {
         // ignore
+      } finally {
+        if (alive) setInviteCodeLoading(false);
       }
     };
     run();
     return () => {
       alive = false;
     };
-  }, []);
+  }, [user?.id]);
 
   const showToast = useCallback((type, message) => {
     setToast({ type, message });
   }, []);
 
-  const inviteCode = useMemo(() => {
-    if (serverInviteCode) return serverInviteCode;
-    const raw =
-      user?.user_metadata?.invite_code ||
-      user?.user_metadata?.ref_code ||
-      user?.user_metadata?.referral_code ||
-      user?.user_metadata?.codigo_invitacion ||
-      user?.user_metadata?.invitation_code ||
-      '';
-
-    const clean = String(raw || '').trim();
-    if (clean) return clean;
-
-    const seed = String(user?.id || user?.email || '');
-    if (!seed) return '';
-
-    let h = 0;
-    for (let i = 0; i < seed.length; i += 1) h = (h * 31 + seed.charCodeAt(i)) % 1000000;
-    return String(h).padStart(6, '0');
-  }, [serverInviteCode, user?.email, user?.id, user?.user_metadata]);
+  const inviteCode = useMemo(() => (serverInviteCode ? serverInviteCode : ''), [serverInviteCode]);
 
   const handleCopy = useCallback(
     async (value) => {
@@ -96,18 +83,39 @@ const Perfil = () => {
     loadCuenta();
   }, [loadCuenta]);
 
+  useEffect(() => {
+    let alive = true;
+    const run = async () => {
+      try {
+        const resp = await getMyReferralStats();
+        const v = Number(resp?.totalIngresos ?? 0);
+        if (!alive) return;
+        setComisionesError('');
+        setTotalComisiones(Number.isFinite(v) ? v : 0);
+      } catch (e) {
+        if (!alive) return;
+        setTotalComisiones(0);
+        setComisionesError(String(e?.message || 'No se pudieron cargar las comisiones'));
+      }
+    };
+    run();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const metrics = useMemo(
     () => [
       { label: 'Billetera electrónica (USDT)', value: saldo.toFixed(2) },
       { label: 'Cartera flexible (USDT)', value: '0.00' },
       { label: 'Desbloquear congelamiento (USDT)', value: '0.00' },
       { label: 'Ingresos totales (USDT)', value: String(totalGanado || 0) },
-      { label: 'Ingresos totales por comisiones', value: '0' },
+      { label: 'Ingresos totales por comisiones', value: String(totalComisiones || 0) },
       { label: 'Recarga acumulada (USDT)', value: '0.00' },
       { label: 'Retiro acumulativo (USDT)', value: '0' },
       { label: 'Tamaño total del equipo', value: '0' },
     ],
-    [saldo, totalGanado],
+    [saldo, totalComisiones, totalGanado],
   );
 
   const neonCyanStyle = useMemo(
@@ -154,10 +162,11 @@ const Perfil = () => {
           <div className="text-right">
             <div className="text-sm text-white/60">Código de invitación</div>
             <div className="flex items-center justify-end gap-2">
-              <div className="text-sm font-semibold">{inviteCode || '—'}</div>
+              <div className="text-sm font-semibold">{inviteCodeLoading ? '—' : inviteCode || '—'}</div>
               <button
                 type="button"
                 onClick={() => handleCopy(inviteCode)}
+                disabled={inviteCodeLoading || !inviteCode}
                 className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/70 hover:text-white hover:bg-white/10 transition"
                 aria-label="Copiar código"
               >
@@ -168,6 +177,12 @@ const Perfil = () => {
           </div>
         </div>
       </div>
+
+      {comisionesError ? (
+        <div className="mt-4 px-4 py-3 rounded-xl border border-red-500/40 bg-red-500/10 text-sm text-red-200">
+          {comisionesError}
+        </div>
+      ) : null}
 
       <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {metrics.map((m) => (

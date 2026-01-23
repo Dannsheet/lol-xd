@@ -3,7 +3,7 @@ import { CheckCircle2, Crown, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../hooks/useAuth';
-import { buyVip, createVipIntent, getCuentaInfo, getMyPlan } from '../lib/api.js';
+import { buyVip, createVipIntent, getCuentaInfo, getMyPlan, getVideosStatus } from '../lib/api.js';
 import './VIP.css';
 
 const VIP = () => {
@@ -12,6 +12,7 @@ const VIP = () => {
 
   const [plans, setPlans] = useState([]);
   const [activeSub, setActiveSub] = useState(null);
+  const [activePlanIds, setActivePlanIds] = useState([]);
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [buyingPlanId, setBuyingPlanId] = useState(null);
@@ -83,6 +84,7 @@ const VIP = () => {
     if (!user) {
       setPlans([]);
       setActiveSub(null);
+      setActivePlanIds([]);
       setBalance(0);
       setLoadError(null);
       setLoading(false);
@@ -116,6 +118,19 @@ const VIP = () => {
           throw e;
         }
       }
+
+      try {
+        const status = await getVideosStatus();
+        const ids = Array.isArray(status?.planes)
+          ? status.planes
+              .map((p) => Number(p?.plan_id))
+              .filter((id) => Number.isFinite(id))
+          : [];
+        setActivePlanIds(Array.from(new Set(ids)));
+      } catch {
+        const fallbackId = Number(activeSub?.plan_id);
+        setActivePlanIds(Number.isFinite(fallbackId) ? [fallbackId] : []);
+      }
     } catch (e) {
       console.error('[VIP] load error', e);
       const msg = e?.message || 'No se pudo cargar VIP';
@@ -136,8 +151,13 @@ const VIP = () => {
       showToast('error', 'Debes iniciar sesión.');
       return;
     }
-    if (activeSub?.plan_id) {
-      showToast('error', 'Ya tienes una suscripción activa.');
+    const planId = Number(plan?.id);
+    if (Number.isFinite(planId) && activePlanIds.includes(planId)) {
+      showToast('error', 'Ya tienes este plan activo.');
+      return;
+    }
+    if (Array.isArray(activePlanIds) && activePlanIds.length >= 8) {
+      showToast('error', 'Límite alcanzado: máximo 8 planes activos.');
       return;
     }
     const price = Number(plan?.precio || 0);
@@ -177,7 +197,11 @@ const VIP = () => {
         <div className="flex items-center gap-3">
           <div className="vipStatusPill" aria-label="Estado de suscripción">
             <span className="vipStatusPill__text">
-              {activeSub?.plan_id ? String(activeSub?.nombre || activeSub?.plan_id) : 'Cuenta gratis'}
+              {activePlanIds?.length
+                ? `VIP Activo (${activePlanIds.length})`
+                : activeSub?.plan_id
+                  ? String(activeSub?.nombre || activeSub?.plan_id)
+                  : 'Cuenta gratis'}
             </span>
           </div>
           <button
@@ -268,7 +292,10 @@ const VIP = () => {
               const price = Number(plan?.precio || meta?.price || 0);
               const daily = Number.isFinite(Number(plan?.ganancia_diaria)) ? Number(plan?.ganancia_diaria) : meta?.daily;
               const isBuying = buyingPlanId === plan.id;
-              const isDisabled = Boolean(activeSub?.plan_id) || isBuying;
+              const planId = Number(plan?.id);
+              const alreadyActive = Number.isFinite(planId) && Array.isArray(activePlanIds) && activePlanIds.includes(planId);
+              const maxReached = Array.isArray(activePlanIds) && activePlanIds.length >= 8;
+              const isDisabled = Boolean(isBuying || alreadyActive || maxReached);
 
               return (
                 <div key={plan.id} className="rounded-2xl border border-white/10 bg-doja-dark/70 p-4">
@@ -278,12 +305,12 @@ const VIP = () => {
                     onClick={() => handleBuy(plan)}
                     className={
                       'w-full rounded-xl py-3 text-sm font-extrabold transition ' +
-                      (activeSub?.plan_id
+                      (alreadyActive || maxReached
                         ? 'bg-white/5 border border-white/10 text-white/40 cursor-not-allowed'
                         : 'bg-[rgba(139,92,246,0.95)] text-white shadow-[0_0_18px_rgba(139,92,246,0.65),0_0_48px_rgba(139,92,246,0.35)] hover:bg-[rgba(139,92,246,1)] hover:shadow-[0_0_26px_rgba(139,92,246,0.85),0_0_62px_rgba(139,92,246,0.45)]')
                     }
                   >
-                    {isBuying ? 'Procesando...' : 'Suscribirse'}
+                    {isBuying ? 'Procesando...' : alreadyActive ? 'Activo' : maxReached ? 'Límite alcanzado' : 'Suscribirse'}
                   </button>
 
                   <div className="mt-3 text-center text-[12px] text-white/70">

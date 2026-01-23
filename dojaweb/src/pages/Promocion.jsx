@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Calendar, ChevronRight } from 'lucide-react';
+import { getCuentaInfo, getMyReferralMembers, getMyReferralStats } from '../lib/api.js';
 import './Promocion.css';
 
 const useCountUp = (target, { durationMs = 900, decimals = 0 } = {}) => {
@@ -45,7 +46,7 @@ const useCountUp = (target, { durationMs = 900, decimals = 0 } = {}) => {
   return fixed;
 };
 
-const NivelCard = ({ nivel, neonStyle }) => {
+const NivelCard = ({ nivel, neonStyle, onOpenMembers }) => {
   const plantillaTotal = useCountUp(nivel?.plantillaTotal, { durationMs: 900, decimals: 0 });
   const numeroActivos = useCountUp(nivel?.numeroActivos, { durationMs: 900, decimals: 0 });
   const equipoRecarga = useCountUp(nivel?.equipoRecarga, { durationMs: 900, decimals: 0 });
@@ -56,7 +57,11 @@ const NivelCard = ({ nivel, neonStyle }) => {
     <div className="bg-doja-dark/70 backdrop-blur border border-white/10 rounded-2xl p-5 mb-4">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-base font-semibold">Datos de nivel {nivel.nivel}</h3>
-        <button type="button" className="flex items-center gap-2 text-white/60 hover:text-doja-light-cyan transition-colors">
+        <button
+          type="button"
+          onClick={() => onOpenMembers?.(nivel?.nivel)}
+          className="flex items-center gap-2 text-white/60 hover:text-doja-light-cyan transition-colors"
+        >
           <span className="text-sm">Lista de miembros</span>
           <ChevronRight className="w-4 h-4" />
         </button>
@@ -102,41 +107,71 @@ const NivelCard = ({ nivel, neonStyle }) => {
 };
 
 const Promocion = () => {
-  const data = useMemo(
-    () => ({
-      totalIngresos: 0,
-      ingresosHoy: 0,
-      recargaTotal: 0,
-      agregadoHoy: 0,
-      niveles: [
-        {
-          nivel: 1,
-          plantillaTotal: 0,
-          numeroActivos: 0,
-          equipoRecarga: 0,
-          regresoTotal: 0,
-          gananciasHoy: 0,
-        },
-        {
-          nivel: 2,
-          plantillaTotal: 0,
-          numeroActivos: 0,
-          equipoRecarga: 0,
-          regresoTotal: 0,
-          gananciasHoy: 0,
-        },
-        {
-          nivel: 3,
-          plantillaTotal: 0,
-          numeroActivos: 0,
-          equipoRecarga: 0,
-          regresoTotal: 0,
-          gananciasHoy: 0,
-        },
-      ],
-    }),
-    [],
-  );
+  const [data, setData] = useState(() => ({
+    totalIngresos: 0,
+    ingresosHoy: 0,
+    recargaTotal: 0,
+    agregadoHoy: 0,
+    niveles: [
+      { nivel: 1, plantillaTotal: 0, numeroActivos: 0, equipoRecarga: 0, regresoTotal: 0, gananciasHoy: 0 },
+      { nivel: 2, plantillaTotal: 0, numeroActivos: 0, equipoRecarga: 0, regresoTotal: 0, gananciasHoy: 0 },
+      { nivel: 3, plantillaTotal: 0, numeroActivos: 0, equipoRecarga: 0, regresoTotal: 0, gananciasHoy: 0 },
+    ],
+  }));
+  const [loadError, setLoadError] = useState('');
+  const [totalGanado, setTotalGanado] = useState(0);
+  const [membersOpen, setMembersOpen] = useState(false);
+  const [membersLevel, setMembersLevel] = useState(1);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersError, setMembersError] = useState('');
+  const [members, setMembers] = useState([]);
+
+  useEffect(() => {
+    let alive = true;
+    const run = async () => {
+      try {
+        const [statsRes, cuentaRes] = await Promise.allSettled([getMyReferralStats(), getCuentaInfo()]);
+        if (!alive) return;
+
+        const resp = statsRes.status === 'fulfilled' ? statsRes.value : null;
+        const cuenta = cuentaRes.status === 'fulfilled' ? cuentaRes.value : null;
+
+        const nextTotalGanado = Number(cuenta?.total_ganado ?? cuenta?.totalGanado ?? 0);
+        setTotalGanado(Number.isFinite(nextTotalGanado) ? nextTotalGanado : 0);
+
+        if (!alive || !resp) return;
+        setLoadError('');
+        const niveles = Array.isArray(resp?.niveles) ? resp.niveles : [];
+        const byLevel = new Map(niveles.map((n) => [Number(n?.nivel), n]));
+        const normalizeNivel = (nivel) => {
+          const n = byLevel.get(Number(nivel)) || {};
+          return {
+            nivel,
+            plantillaTotal: Number(n?.plantillaTotal ?? 0) || 0,
+            numeroActivos: Number(n?.numeroActivos ?? 0) || 0,
+            equipoRecarga: Number(n?.equipoRecarga ?? 0) || 0,
+            regresoTotal: Number(n?.regresoTotal ?? 0) || 0,
+            gananciasHoy: Number(n?.gananciasHoy ?? 0) || 0,
+          };
+        };
+
+        setData({
+          totalIngresos: Number(resp?.totalIngresos ?? 0) || 0,
+          ingresosHoy: Number(resp?.ingresosHoy ?? 0) || 0,
+          recargaTotal: Number(resp?.recargaTotal ?? 0) || 0,
+          agregadoHoy: Number(resp?.agregadoHoy ?? 0) || 0,
+          niveles: [normalizeNivel(1), normalizeNivel(2), normalizeNivel(3)],
+        });
+      } catch (e) {
+        if (!alive) return;
+        setLoadError(String(e?.message || 'No se pudo cargar la promoción'));
+      }
+    };
+    run();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const neonCyanStyle = useMemo(
     () => ({
@@ -154,14 +189,24 @@ const Promocion = () => {
   const radio = 100;
   const circunferencia = 2 * Math.PI * radio;
 
-  const pScore = 30;
-  const pReco = 50;
-  const pInv = 20;
+  const chartPct = useMemo(() => {
+    const recoValue = Number(data?.totalIngresos ?? 0);
+    const totalValue = Math.max(Number(totalGanado ?? 0), recoValue, 0);
+    if (!Number.isFinite(totalValue) || totalValue <= 0) {
+      return { reco: 0, score: 0, inv: 0 };
+    }
+
+    const reco = Math.max(0, Math.min(100, (recoValue / totalValue) * 100));
+    const remaining = Math.max(0, 100 - reco);
+    const score = remaining * 0.6;
+    const inv = remaining * 0.4;
+    return { reco, score, inv };
+  }, [data?.totalIngresos, totalGanado]);
 
   const totalPct = useCountUp(100, { durationMs: 900, decimals: 0 });
-  const scorePct = useCountUp(pScore, { durationMs: 1100, decimals: 0 });
-  const recoPct = useCountUp(pReco, { durationMs: 1100, decimals: 0 });
-  const invPct = useCountUp(pInv, { durationMs: 1100, decimals: 0 });
+  const scorePct = useCountUp(chartPct.score, { durationMs: 1100, decimals: 0 });
+  const recoPct = useCountUp(chartPct.reco, { durationMs: 1100, decimals: 0 });
+  const invPct = useCountUp(chartPct.inv, { durationMs: 1100, decimals: 0 });
 
   const segScore = (Number(scorePct || 0) / 100) * circunferencia;
   const segReco = (Number(recoPct || 0) / 100) * circunferencia;
@@ -169,12 +214,36 @@ const Promocion = () => {
 
   const ringStroke = 22;
 
+  const openMembers = async (level) => {
+    const lvl = Number(level) || 1;
+    setMembersLevel(lvl);
+    setMembersOpen(true);
+    setMembersLoading(true);
+    setMembersError('');
+    setMembers([]);
+    try {
+      const resp = await getMyReferralMembers(lvl);
+      const rows = Array.isArray(resp?.members) ? resp.members : Array.isArray(resp) ? resp : [];
+      setMembers(rows);
+    } catch (e) {
+      setMembersError(String(e?.message || 'No se pudo cargar la lista de miembros'));
+    } finally {
+      setMembersLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-full bg-doja-bg text-white p-4">
       <div className="relative flex justify-between items-center mb-6 min-h-[32px]">
         <h1 className="pageTitleNeon absolute left-1/2 -translate-x-1/2 text-2xl font-bold">PROMOCIÓN</h1>
         <div />
       </div>
+
+      {loadError ? (
+        <div className="mb-4 px-4 py-3 rounded-xl border border-red-500/40 bg-red-500/10 text-sm text-red-200">
+          {loadError}
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-doja-dark/70 backdrop-blur border border-white/10 rounded-2xl p-4">
@@ -311,8 +380,71 @@ const Promocion = () => {
       </div>
 
       {data.niveles.map((nivel) => (
-        <NivelCard key={nivel.nivel} nivel={nivel} neonStyle={neonCyanStyle} />
+        <NivelCard key={nivel.nivel} nivel={nivel} neonStyle={neonCyanStyle} onOpenMembers={openMembers} />
       ))}
+
+      {membersOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-doja-dark/95 backdrop-blur p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-base font-semibold">Lista de miembros (Nivel {membersLevel})</div>
+              <button
+                type="button"
+                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 hover:bg-white/10 transition"
+                onClick={() => setMembersOpen(false)}
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <div className="mt-3">
+              {membersLoading ? (
+                <div className="text-sm text-white/60">Cargando...</div>
+              ) : membersError ? (
+                <div className="px-4 py-3 rounded-xl border border-red-500/40 bg-red-500/10 text-sm text-red-200">
+                  {membersError}
+                </div>
+              ) : members.length === 0 ? (
+                <div className="text-sm text-white/60">Sin miembros en este nivel.</div>
+              ) : (
+                <div className="mt-2 space-y-2 max-h-[60vh] overflow-auto pr-1">
+                  {members.map((m) => {
+                    const plans = Array.isArray(m?.active_plans) ? m.active_plans : [];
+                    return (
+                      <div key={m?.id || m?.email} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-semibold break-all">{m?.email || '—'}</div>
+                            <div className="text-xs text-white/60 break-all">{m?.id || ''}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-white/60">Planes activos</div>
+                            <div className="text-sm font-semibold" style={neonCyanStyle}>{plans.length}</div>
+                          </div>
+                        </div>
+
+                        {plans.length ? (
+                          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {plans.map((p) => (
+                              <div key={p?.subscription_id || `${p?.plan_id}-${p?.expires_at}`} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                                <div className="text-xs text-white/60">Plan</div>
+                                <div className="text-sm font-semibold">#{p?.plan_id ?? '—'}</div>
+                                <div className="mt-1 text-[11px] text-white/60 break-all">
+                                  Expira: {p?.expires_at ? String(p.expires_at) : '—'}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

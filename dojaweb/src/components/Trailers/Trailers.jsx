@@ -36,6 +36,7 @@ const Trailers = ({ perPage = 12 }) => {
   const [vipChecking, setVipChecking] = useState(true);
   const [vipActive, setVipActive] = useState(false);
   const [dailyStatus, setDailyStatus] = useState(null);
+  const [selectedPlanId, setSelectedPlanId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
@@ -99,7 +100,9 @@ const Trailers = ({ perPage = 12 }) => {
         return;
       }
 
-      if (dailyStatus && dailyStatus.puede_ver === false) {
+      const plans = Array.isArray(dailyStatus?.planes) ? dailyStatus.planes : [];
+      const currentPlan = plans.find((p) => Number(p?.plan_id) === Number(selectedPlanId)) || plans[0] || null;
+      if (currentPlan && currentPlan.puede_ver === false) {
         setError('Ya viste tu video de hoy, vuelve mañana');
         return;
       }
@@ -110,7 +113,7 @@ const Trailers = ({ perPage = 12 }) => {
       setRegisteringById((prev) => ({ ...prev, [idKey]: true }));
       try {
         const rating = Number(ratings?.[idKey] || 0) || null;
-        await verVideo({ video_id: String(videoId), calificacion: rating });
+        await verVideo({ video_id: String(videoId), calificacion: rating, plan_id: selectedPlanId });
 
         try {
           await Promise.all([getVideosStatus().then(setDailyStatus), getCuentaInfo()]);
@@ -141,7 +144,7 @@ const Trailers = ({ perPage = 12 }) => {
         });
       }
     },
-    [dailyStatus, ratings, registeringById, user?.id, vipActive]
+    [dailyStatus, ratings, registeringById, selectedPlanId, user?.id, vipActive]
   );
 
   const fetchVideos = useCallback(async () => {
@@ -223,10 +226,18 @@ const Trailers = ({ perPage = 12 }) => {
 
       setVipActive(true);
       setDailyStatus(hasDailyLimit ? (status || null) : null);
+
+      const plans = Array.isArray(status?.planes) ? status.planes : [];
+      const firstPlanId = plans.length ? Number(plans[0]?.plan_id) : null;
+      setSelectedPlanId((prev) => {
+        if (prev != null && plans.some((p) => Number(p?.plan_id) === Number(prev))) return prev;
+        return firstPlanId;
+      });
     } catch (e) {
       console.error('[Trailers] vip check error', e);
       setVipActive(false);
       setDailyStatus(null);
+      setSelectedPlanId(null);
       setError(e?.message || 'No se pudo validar la suscripción');
     } finally {
       setVipChecking(false);
@@ -250,9 +261,21 @@ const Trailers = ({ perPage = 12 }) => {
 
   const unlockedVideoId = useMemo(() => {
     if (!vipActive) return null;
-    if (dailyStatus && dailyStatus.puede_ver === false) return null;
-    return items?.[0]?.id ?? null;
-  }, [dailyStatus, items, vipActive]);
+    const plans = Array.isArray(dailyStatus?.planes) ? dailyStatus.planes : [];
+    const currentPlan = plans.find((p) => Number(p?.plan_id) === Number(selectedPlanId)) || plans[0] || null;
+    if (currentPlan && currentPlan.puede_ver === false) return null;
+    if (!items?.length) return null;
+
+    const seedRaw = currentPlan?.daily_seed;
+    const seed = Number(seedRaw);
+    const idx = Number.isFinite(seed) ? Math.abs(seed) % items.length : 0;
+    return items[idx]?.id ?? items?.[0]?.id ?? null;
+  }, [dailyStatus, items, selectedPlanId, vipActive]);
+
+  const currentPlanInfo = useMemo(() => {
+    const plans = Array.isArray(dailyStatus?.planes) ? dailyStatus.planes : [];
+    return plans.find((p) => Number(p?.plan_id) === Number(selectedPlanId)) || plans[0] || null;
+  }, [dailyStatus, selectedPlanId]);
 
   return (
     <section className="trailers">
@@ -283,7 +306,7 @@ const Trailers = ({ perPage = 12 }) => {
 
       {error ? <div className="trailers__error">{error}</div> : null}
 
-      {!vipChecking && (!vipActive || (dailyStatus && dailyStatus.puede_ver === false)) ? (
+      {!vipChecking && (!vipActive || (currentPlanInfo && currentPlanInfo.puede_ver === false)) ? (
         <div className="trailers__locked">
           <div className="trailers__lockedTitle">Contenido exclusivo VIP</div>
           <div className="trailers__lockedText">
@@ -291,8 +314,8 @@ const Trailers = ({ perPage = 12 }) => {
               ? 'Para ver los videos debes tener una suscripción VIP activa.'
               : 'Ya viste tu video de hoy, vuelve mañana.'}
           </div>
-          {dailyStatus && typeof dailyStatus.recompensa === 'number' ? (
-            <div className="trailers__lockedText">Recompensa de hoy: {Number(dailyStatus.recompensa).toFixed(2)} USDT</div>
+          {currentPlanInfo && typeof currentPlanInfo.recompensa === 'number' ? (
+            <div className="trailers__lockedText">Recompensa: {Number(currentPlanInfo.recompensa).toFixed(2)} USDT</div>
           ) : null}
           <button type="button" className="trailers__lockedCta" onClick={() => navigate('/vip')}>
             Ver planes VIP
@@ -300,11 +323,35 @@ const Trailers = ({ perPage = 12 }) => {
         </div>
       ) : null}
 
+      {vipActive && Array.isArray(dailyStatus?.planes) && dailyStatus.planes.length > 1 ? (
+        <div className="trailers__planPicker">
+          <div className="trailers__planPickerTitle">Selecciona un plan</div>
+          <div className="trailers__planPickerList">
+            {dailyStatus.planes.map((p) => {
+              const pid = Number(p?.plan_id);
+              const activeBtn = Number(pid) === Number(selectedPlanId);
+              const label = `Plan ${pid}`;
+              return (
+                <button
+                  key={pid}
+                  type="button"
+                  className={activeBtn ? 'trailers__planBtn trailers__planBtn--active' : 'trailers__planBtn'}
+                  onClick={() => setSelectedPlanId(pid)}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
       <div className="trailers__grid" aria-hidden={!vipActive}>
         {items.map((item) => {
           const current = Number(ratings?.[String(item.id)] || 0);
           const rated = Boolean(ratings?.[String(item.id)]);
-          const isLocked = !vipActive || (unlockedVideoId != null && item.id !== unlockedVideoId) || unlockedVideoId == null;
+          const isLocked =
+            !vipActive || (unlockedVideoId != null && item.id !== unlockedVideoId) || unlockedVideoId == null;
 
           return (
             <div key={item.id} className={isLocked ? 'trailers__card trailers__card--locked' : 'trailers__card'}>
@@ -321,7 +368,7 @@ const Trailers = ({ perPage = 12 }) => {
                 {isLocked ? (
                   <div className="trailers__lockOverlay">
                     <Lock className="trailers__lockIcon" />
-                    <div className="trailers__lockText">Solo puedes ver 1 video</div>
+                    <div className="trailers__lockText">Solo puedes ver 1 video por plan</div>
                   </div>
                 ) : null}
               </div>

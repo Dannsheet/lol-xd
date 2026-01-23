@@ -542,23 +542,6 @@ const WalletPage = () => {
                     </button>
                   ) : null}
                 </div>
-
-                {depositQrValue ? (
-                  <>
-                    <div className="mt-2 text-[12px] text-white/60">Enlace</div>
-                    <div className="mt-1 flex items-center gap-2">
-                      <div className="text-[12px] text-white/90 font-mono break-all">{depositQrValue}</div>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(depositQrValue)}
-                        className="shrink-0 rounded-lg border border-white/10 bg-white/5 p-2 hover:bg-white/10 transition"
-                        aria-label="Copiar enlace"
-                      >
-                        <Copy className="w-4 h-4 text-white/70" />
-                      </button>
-                    </div>
-                  </>
-                ) : null}
                 {depositMemo ? (
                   <>
                     <div className="mt-2 text-[12px] text-white/60">Memo</div>
