@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Calendar, ChevronRight } from 'lucide-react';
-import { getCuentaInfo, getMyReferralMembers, getMyReferralStats } from '../lib/api.js';
+import { Calendar, ChevronRight, Copy, UserPlus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { getCuentaInfo, getMyReferralMembers, getMyReferralProfile, getMyReferralStats } from '../lib/api.js';
 import './Promocion.css';
 
 const useCountUp = (target, { durationMs = 900, decimals = 0 } = {}) => {
@@ -107,6 +108,7 @@ const NivelCard = ({ nivel, neonStyle, onOpenMembers }) => {
 };
 
 const Promocion = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState(() => ({
     totalIngresos: 0,
     ingresosHoy: 0,
@@ -125,16 +127,34 @@ const Promocion = () => {
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersError, setMembersError] = useState('');
   const [members, setMembers] = useState([]);
+  const [inviteCode, setInviteCode] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(true);
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = window.setTimeout(() => setToast(null), 2500);
+    return () => window.clearTimeout(id);
+  }, [toast]);
 
   useEffect(() => {
     let alive = true;
     const run = async () => {
       try {
-        const [statsRes, cuentaRes] = await Promise.allSettled([getMyReferralStats(), getCuentaInfo()]);
+        const [statsRes, cuentaRes, profileRes] = await Promise.allSettled([
+          getMyReferralStats(),
+          getCuentaInfo(),
+          getMyReferralProfile(),
+        ]);
         if (!alive) return;
 
         const resp = statsRes.status === 'fulfilled' ? statsRes.value : null;
         const cuenta = cuentaRes.status === 'fulfilled' ? cuentaRes.value : null;
+        const profile = profileRes.status === 'fulfilled' ? profileRes.value : null;
+
+        const code = String(profile?.invite_code || profile?.inviteCode || '').trim();
+        setInviteCode(code);
+        setInviteLoading(false);
 
         const nextTotalGanado = Number(cuenta?.total_ganado ?? cuenta?.totalGanado ?? 0);
         setTotalGanado(Number.isFinite(nextTotalGanado) ? nextTotalGanado : 0);
@@ -165,6 +185,7 @@ const Promocion = () => {
       } catch (e) {
         if (!alive) return;
         setLoadError(String(e?.message || 'No se pudo cargar la promoción'));
+        setInviteLoading(false);
       }
     };
     run();
@@ -172,6 +193,15 @@ const Promocion = () => {
       alive = false;
     };
   }, []);
+
+  const handleCopy = async (value) => {
+    try {
+      await navigator.clipboard.writeText(String(value || ''));
+      setToast({ type: 'success', message: 'Copiado' });
+    } catch {
+      setToast({ type: 'error', message: 'No se pudo copiar' });
+    }
+  };
 
   const neonCyanStyle = useMemo(
     () => ({
@@ -239,11 +269,58 @@ const Promocion = () => {
         <div />
       </div>
 
+      {toast ? (
+        <div
+          className="mb-4 px-4 py-3 rounded-xl border text-sm font-medium"
+          style={{
+            borderColor: toast.type === 'error' ? '#ff4d4f' : '#8B5CF6',
+            backgroundColor: toast.type === 'error' ? 'rgba(255, 77, 79, 0.1)' : 'rgba(139, 92, 246, 0.1)',
+            color: toast.type === 'error' ? '#ff4d4f' : '#8B5CF6',
+          }}
+        >
+          {toast.message}
+        </div>
+      ) : null}
+
       {loadError ? (
         <div className="mb-4 px-4 py-3 rounded-xl border border-red-500/40 bg-red-500/10 text-sm text-red-200">
           {loadError}
         </div>
       ) : null}
+
+      <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-sm text-white/60">Tu código de invitación</div>
+            <div className="mt-1 text-lg font-semibold tracking-widest">
+              {inviteLoading ? '—' : inviteCode || '—'}
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleCopy(inviteCode)}
+              disabled={inviteLoading || !inviteCode}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 hover:bg-white/10 transition disabled:opacity-50 disabled:hover:bg-white/5"
+            >
+              <Copy className="w-4 h-4" />
+              Copiar
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/invitar')}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 hover:bg-white/10 transition"
+            >
+              <UserPlus className="w-4 h-4" />
+              Invitar
+            </button>
+          </div>
+        </div>
+        <div className="mt-3 text-xs text-white/60 leading-relaxed">
+          Comparte tu código solo con personas de confianza. Las comisiones se generan cuando tu equipo compra planes VIP.
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-doja-dark/70 backdrop-blur border border-white/10 rounded-2xl p-4">

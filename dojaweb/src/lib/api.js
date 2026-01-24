@@ -222,7 +222,31 @@ export const getVideosStatus = () => apiFetch('/api/videos/status');
 export const verVideo = ({ video_id, calificacion, plan_id } = {}) =>
   apiFetch('/api/videos/ver', { method: 'POST', body: { video_id, calificacion, plan_id } });
 
-export const getCuentaInfo = () => apiFetch('/api/cuenta/info');
+export const getCuentaInfo = async () => {
+  const [cuentaRes, meRes] = await Promise.allSettled([apiFetch('/api/cuenta/info'), getMe()]);
+
+  const cuenta = cuentaRes.status === 'fulfilled' ? cuentaRes.value : null;
+  const me = meRes.status === 'fulfilled' ? meRes.value : null;
+
+  const saldoInterno = Number(me?.usuario?.saldo_interno ?? me?.usuario?.saldoInterno ?? NaN);
+  const cuentaBalance = Number(cuenta?.balance ?? cuenta?.saldo_interno ?? cuenta?.saldoInterno ?? NaN);
+  const nextBalance = Number.isFinite(saldoInterno) ? saldoInterno : Number.isFinite(cuentaBalance) ? cuentaBalance : 0;
+
+  const totalGanado = Number(
+    cuenta?.total_ganado ??
+      cuenta?.totalGanado ??
+      me?.cuenta?.total_ganado ??
+      me?.cuenta?.totalGanado ??
+      NaN
+  );
+
+  return {
+    ...(typeof cuenta === 'object' && cuenta ? cuenta : {}),
+    saldo_interno: nextBalance,
+    balance: nextBalance,
+    total_ganado: Number.isFinite(totalGanado) ? totalGanado : 0,
+  };
+};
 
 export const linkReferral = (invite_code) =>
   apiFetch('/api/referrals/link', { method: 'POST', body: { invite_code } });
