@@ -155,9 +155,11 @@ const VIP = () => {
           : [];
         setActivePlanIds(Array.from(new Set(ids)));
       } catch {
-        const fallbackIds = activeSubsView
-          .map((p) => Number(p?.plan_id))
-          .filter((id) => Number.isFinite(id));
+        const fallbackIds = Array.isArray(activeSubs)
+          ? activeSubs
+              .map((s) => Number(s?.plan_id))
+              .filter((id) => Number.isFinite(id))
+          : [];
         setActivePlanIds(Array.from(new Set(fallbackIds)));
       }
     } catch (e) {
@@ -168,7 +170,7 @@ const VIP = () => {
     } finally {
       setLoading(false);
     }
-  }, [activeSubsView, showToast, user]);
+  }, [showToast, user]);
 
   useEffect(() => {
     if (authLoading) return;
