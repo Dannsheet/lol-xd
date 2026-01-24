@@ -3,7 +3,7 @@ import { CheckCircle2, Crown, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../hooks/useAuth';
-import { buyVip, createVipIntent, getCuentaInfo, getMyPlan, getVideosStatus } from '../lib/api.js';
+import { buyVip, createVipIntent, getCuentaInfo, getMyPlan, getMyPlans, getVideosStatus } from '../lib/api.js';
 import './VIP.css';
 
 const VIP = () => {
@@ -12,6 +12,7 @@ const VIP = () => {
 
   const [plans, setPlans] = useState([]);
   const [activeSub, setActiveSub] = useState(null);
+  const [activeSubs, setActiveSubs] = useState([]);
   const [activePlanIds, setActivePlanIds] = useState([]);
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -28,35 +29,51 @@ const VIP = () => {
 
   const showToast = useCallback((type, message) => setToast({ type, message }), []);
 
-  const activeExpiryDate = useMemo(() => {
-    const raw =
-      activeSub?.expira_en ||
-      activeSub?.expires_at ||
-      activeSub?.vence_en ||
-      activeSub?.expiresAt ||
-      null;
-    if (!raw) return null;
-    const d = new Date(raw);
-    if (Number.isNaN(d.getTime())) return null;
-    return d;
-  }, [activeSub]);
+  const activeSubsView = useMemo(() => {
+    const src = Array.isArray(activeSubs) && activeSubs.length ? activeSubs : activeSub?.plan_id ? [activeSub] : [];
+    const rows = src
+      .map((s) => {
+        const raw = s?.expira_en || s?.expires_at || s?.vence_en || s?.expiresAt || null;
+        const d = raw ? new Date(raw) : null;
+        const expiryMs = d && Number.isFinite(d.getTime()) ? d.getTime() : null;
+        return {
+          subscription_id: s?.subscription_id ?? s?.id ?? null,
+          plan_id: s?.plan_id ?? s?.plan?.id ?? null,
+          nombre: s?.nombre ?? s?.plan?.nombre ?? s?.plan?.name ?? null,
+          expira_en: raw,
+          expiryMs,
+        };
+      })
+      .filter((r) => r?.plan_id != null);
+
+    rows.sort((a, b) => {
+      const at = a?.expiryMs ?? Number.POSITIVE_INFINITY;
+      const bt = b?.expiryMs ?? Number.POSITIVE_INFINITY;
+      return at - bt;
+    });
+
+    return rows;
+  }, [activeSub, activeSubs]);
 
   useEffect(() => {
-    if (!activeSub?.plan_id || !activeExpiryDate) return;
+    if (!activeSubsView.length) return;
     setNowTs(Date.now());
     const id = window.setInterval(() => setNowTs(Date.now()), 1000);
     return () => window.clearInterval(id);
-  }, [activeExpiryDate, activeSub?.plan_id]);
+  }, [activeSubsView.length]);
 
-  const activeCountdown = useMemo(() => {
-    if (!activeSub?.plan_id || !activeExpiryDate) return null;
-    const diffMs = Math.max(0, activeExpiryDate.getTime() - Number(nowTs || 0));
-    const totalMinutes = Math.floor(diffMs / 60000);
-    const days = Math.floor(totalMinutes / 1440);
-    const hours = Math.floor((totalMinutes % 1440) / 60);
-    const minutes = totalMinutes % 60;
-    return { days, hours, minutes, diffMs };
-  }, [activeExpiryDate, activeSub?.plan_id, nowTs]);
+  const countdownFor = useCallback(
+    (expiryMs) => {
+      if (!Number.isFinite(Number(expiryMs))) return null;
+      const diffMs = Math.max(0, Number(expiryMs) - Number(nowTs || 0));
+      const totalMinutes = Math.floor(diffMs / 60000);
+      const days = Math.floor(totalMinutes / 1440);
+      const hours = Math.floor((totalMinutes % 1440) / 60);
+      const minutes = totalMinutes % 60;
+      return { days, hours, minutes, diffMs };
+    },
+    [nowTs],
+  );
 
   const vipDailyByLevel = useMemo(
     () => ({
@@ -84,6 +101,7 @@ const VIP = () => {
     if (!user) {
       setPlans([]);
       setActiveSub(null);
+      setActiveSubs([]);
       setActivePlanIds([]);
       setBalance(0);
       setLoadError(null);
@@ -107,13 +125,22 @@ const VIP = () => {
       setBalance(Number.isFinite(nextBalance) ? nextBalance : 0);
 
       try {
-        const miPlan = await getMyPlan();
-        setActiveSub(miPlan || null);
+        const myPlansResp = await getMyPlans();
+        const planes = Array.isArray(myPlansResp?.planes) ? myPlansResp.planes : [];
+        setActiveSubs(planes);
+
+        if (planes.length) {
+          setActiveSub(planes[0] || null);
+        } else {
+          const miPlan = await getMyPlan();
+          setActiveSub(miPlan || null);
+        }
       } catch (e) {
         const msg = String(e?.message || '');
         const lower = msg.toLowerCase();
         if (e?.status === 404 || lower.includes('sin suscripción activa') || lower.includes('sin suscripcion activa')) {
           setActiveSub(null);
+          setActiveSubs([]);
         } else {
           throw e;
         }
@@ -128,8 +155,10 @@ const VIP = () => {
           : [];
         setActivePlanIds(Array.from(new Set(ids)));
       } catch {
-        const fallbackId = Number(activeSub?.plan_id);
-        setActivePlanIds(Number.isFinite(fallbackId) ? [fallbackId] : []);
+        const fallbackIds = activeSubsView
+          .map((p) => Number(p?.plan_id))
+          .filter((id) => Number.isFinite(id));
+        setActivePlanIds(Array.from(new Set(fallbackIds)));
       }
     } catch (e) {
       console.error('[VIP] load error', e);
@@ -139,7 +168,7 @@ const VIP = () => {
     } finally {
       setLoading(false);
     }
-  }, [showToast, user]);
+  }, [activeSubsView, showToast, user]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -248,28 +277,47 @@ const VIP = () => {
         </button>
       </div>
 
-      {activeSub?.plan_id && (
+      {activeSubsView.length ? (
         <div className="mt-4 rounded-2xl border border-doja-cyan/30 bg-doja-cyan/10 p-4">
-          {activeCountdown ? (
-            <div className="text-center">
-              <div className="text-[12px] text-white/70">Tu suscripción termina en</div>
-              <div className="mt-1 text-2xl font-extrabold text-doja-cyan">
-                {activeCountdown.days}d {String(activeCountdown.hours).padStart(2, '0')}h{' '}
-                {String(activeCountdown.minutes).padStart(2, '0')}m
-              </div>
-            </div>
-          ) : null}
-
           <div className="mt-3 flex items-center gap-2 text-doja-cyan font-semibold">
             <CheckCircle2 className="w-5 h-5" />
             Suscripción activa
           </div>
-          <div className="mt-2 text-sm text-white/80">
-            Plan: <span className="font-mono">{activeSub?.nombre || activeSub?.plan_id || '—'}</span>
+
+          <div className="mt-3 space-y-3">
+            {activeSubsView.map((s) => {
+              const cd = countdownFor(s?.expiryMs);
+              const expiryLabel = (() => {
+                if (!s?.expira_en) return '—';
+                const d = new Date(String(s.expira_en));
+                return Number.isFinite(d.getTime()) ? d.toLocaleString() : String(s.expira_en);
+              })();
+
+              return (
+                <div key={s?.subscription_id || s?.plan_id} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm text-white/70">Plan</div>
+                      <div className="text-sm font-semibold text-white">
+                        <span className="font-mono">{s?.nombre || `#${s?.plan_id}`}</span>
+                      </div>
+                      <div className="mt-1 text-xs text-white/60">Expira: {expiryLabel}</div>
+                    </div>
+                    {cd ? (
+                      <div className="text-right">
+                        <div className="text-[11px] text-white/60">Termina en</div>
+                        <div className="mt-1 text-sm font-extrabold text-doja-cyan">
+                          {cd.days}d {String(cd.hours).padStart(2, '0')}h {String(cd.minutes).padStart(2, '0')}m
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <div className="mt-1 text-xs text-white/60">Expira: {activeExpiryDate ? activeExpiryDate.toLocaleString() : '—'}</div>
         </div>
-      )}
+      ) : null}
 
       <div className="mt-6">
         <div className="text-sm text-white/70">Planes disponibles</div>

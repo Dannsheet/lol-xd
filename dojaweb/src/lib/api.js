@@ -217,6 +217,32 @@ export const getBalanceMovements = async () => {
 
 export const getMyPlan = () => apiFetch('/api/suscripcion/mi-plan');
 
+export const getMyPlans = async () => {
+  try {
+    return await apiFetch('/api/suscripcion/mis-planes');
+  } catch (e) {
+    if (e?.status !== 404) throw e;
+    const single = await getMyPlan();
+    if (single?.plan_activo) {
+      return {
+        ok: true,
+        planes: [
+          {
+            subscription_id: null,
+            plan_id: single?.plan_id,
+            nombre: single?.nombre ?? null,
+            limite_tareas: single?.limite_tareas ?? null,
+            ganancia_diaria: single?.ganancia_diaria ?? null,
+            expira_en: single?.expira_en ?? null,
+            created_at: null,
+          },
+        ],
+      };
+    }
+    return { ok: true, planes: [] };
+  }
+};
+
 export const getVideosStatus = () => apiFetch('/api/videos/status');
 
 export const verVideo = ({ video_id, calificacion, plan_id } = {}) =>

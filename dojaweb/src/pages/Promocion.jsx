@@ -1,7 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Calendar, ChevronRight, Copy, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getCuentaInfo, getMyReferralMembers, getMyReferralProfile, getMyReferralStats } from '../lib/api.js';
+import {
+  getBalanceMovements,
+  getCuentaInfo,
+  getMyReferralMembers,
+  getMyReferralProfile,
+  getMyReferralStats,
+} from '../lib/api.js';
 import './Promocion.css';
 
 const useCountUp = (target, { durationMs = 900, decimals = 0 } = {}) => {
@@ -130,6 +136,7 @@ const Promocion = () => {
   const [inviteCode, setInviteCode] = useState('');
   const [inviteLoading, setInviteLoading] = useState(true);
   const [toast, setToast] = useState(null);
+  const [userIngresosHoy, setUserIngresosHoy] = useState(0);
 
   useEffect(() => {
     if (!toast) return;
@@ -141,16 +148,23 @@ const Promocion = () => {
     let alive = true;
     const run = async () => {
       try {
-        const [statsRes, cuentaRes, profileRes] = await Promise.allSettled([
+        const [statsRes, cuentaRes, profileRes, movsRes] = await Promise.allSettled([
           getMyReferralStats(),
           getCuentaInfo(),
           getMyReferralProfile(),
+          getBalanceMovements(),
         ]);
         if (!alive) return;
 
         const resp = statsRes.status === 'fulfilled' ? statsRes.value : null;
         const cuenta = cuentaRes.status === 'fulfilled' ? cuentaRes.value : null;
         const profile = profileRes.status === 'fulfilled' ? profileRes.value : null;
+        const movimientos = movsRes.status === 'fulfilled' ? movsRes.value : null;
+
+        if (statsRes.status !== 'fulfilled' || !resp) {
+          const reason = statsRes.status === 'rejected' ? statsRes.reason : null;
+          throw new Error(String(reason?.message || 'No se pudo cargar la promoción'));
+        }
 
         const code = String(profile?.invite_code || profile?.inviteCode || '').trim();
         setInviteCode(code);
@@ -159,7 +173,20 @@ const Promocion = () => {
         const nextTotalGanado = Number(cuenta?.total_ganado ?? cuenta?.totalGanado ?? 0);
         setTotalGanado(Number.isFinite(nextTotalGanado) ? nextTotalGanado : 0);
 
-        if (!alive || !resp) return;
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+        const rows = Array.isArray(movimientos) ? movimientos : [];
+        const hoy = rows.reduce((acc, m) => {
+          const ts = m?.creado_en ? new Date(String(m.creado_en)).getTime() : NaN;
+          if (!Number.isFinite(ts)) return acc;
+          if (ts < startOfDay.getTime() || ts >= endOfDay.getTime()) return acc;
+          const monto = Number(m?.monto ?? 0);
+          if (!Number.isFinite(monto) || monto <= 0) return acc;
+          return acc + monto;
+        }, 0);
+        setUserIngresosHoy(Number.isFinite(hoy) ? hoy : 0);
+
         setLoadError('');
         const niveles = Array.isArray(resp?.niveles) ? resp.niveles : [];
         const byLevel = new Map(niveles.map((n) => [Number(n?.nivel), n]));
@@ -186,6 +213,7 @@ const Promocion = () => {
         if (!alive) return;
         setLoadError(String(e?.message || 'No se pudo cargar la promoción'));
         setInviteLoading(false);
+        setUserIngresosHoy(0);
       }
     };
     run();
@@ -210,9 +238,6 @@ const Promocion = () => {
     }),
     [],
   );
-
-  const totalIngresos = useCountUp(data.totalIngresos, { durationMs: 900, decimals: 2 });
-  const ingresosHoy = useCountUp(data.ingresosHoy, { durationMs: 900, decimals: 2 });
   const recargaTotal = useCountUp(data.recargaTotal, { durationMs: 900, decimals: 2 });
   const agregadoHoy = useCountUp(data.agregadoHoy, { durationMs: 900, decimals: 2 });
 
@@ -326,13 +351,13 @@ const Promocion = () => {
         <div className="bg-doja-dark/70 backdrop-blur border border-white/10 rounded-2xl p-4">
           <p className="text-white/70 text-sm mb-2">Ingresos totales del usuario</p>
           <p className="text-3xl font-bold" style={neonCyanStyle}>
-            {Number(totalIngresos || 0).toFixed(2)} USDT
+            {Number(totalGanado || 0).toFixed(2)} USDT
           </p>
         </div>
         <div className="bg-doja-dark/70 backdrop-blur border border-white/10 rounded-2xl p-4">
           <p className="text-white/70 text-sm mb-2">Ingresos añadidos hoy</p>
           <p className="text-3xl font-bold" style={neonCyanStyle}>
-            {Number(ingresosHoy || 0).toFixed(2)} USDT
+            {Number(userIngresosHoy || 0).toFixed(2)} USDT
           </p>
         </div>
       </div>
