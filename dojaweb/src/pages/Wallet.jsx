@@ -158,13 +158,19 @@ const WalletPage = () => {
 
   const isCuentaActiva = useMemo(() => true, []);
 
+  const withdrawFees = useMemo(
+    () => ({
+      'BEP20-USDT': 1,
+      'TRC20-USDT': 1,
+      'ETH-USDT': 8,
+      'POLYGON-USDT': 0.5,
+    }),
+    [],
+  );
+
   const openWithdraw = () => {
     if (!isCuentaActiva) {
       showToast('error', 'Tu cuenta no está activa');
-      return;
-    }
-    if (!(balanceNumber >= 10)) {
-      showToast('error', 'El retiro mínimo es 10 USDT');
       return;
     }
     setWithdrawOpen(true);
@@ -262,8 +268,15 @@ const WalletPage = () => {
   const validateWithdrawForm = () => {
     const monto = Number(withdrawForm.monto);
     if (!Number.isFinite(monto) || monto <= 0) return 'Monto inválido';
-    if (monto < 10) return 'El retiro mínimo es 10 USDT';
     if (!withdrawForm.red) return 'Debes seleccionar una red';
+
+    const fee = Number(withdrawFees?.[withdrawForm.red]);
+    if (!Number.isFinite(fee) || fee <= 0) return 'Red no soportada';
+
+    const neto = monto - fee;
+    if (!Number.isFinite(neto) || neto <= 0) return 'Monto inválido';
+    if (neto < 10) return `El retiro mínimo neto es 10 USDT. Ingresa mínimo ${(10 + fee).toFixed(2)} USDT`;
+
     if (!withdrawForm.direccion.trim()) return 'Debes ingresar una dirección externa';
     if (!withdrawForm.pin.trim()) return 'Debes ingresar el PIN';
     if (!isCuentaActiva) return 'Tu cuenta no está activa';
@@ -505,7 +518,7 @@ const WalletPage = () => {
           <button
             type="button"
             onClick={openWithdraw}
-            disabled={!isCuentaActiva || !(balanceNumber >= 10)}
+            disabled={!isCuentaActiva}
             className="rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 p-4 text-left transition disabled:opacity-50"
           >
             <div className="flex items-center gap-2 text-white font-semibold">
@@ -522,8 +535,10 @@ const WalletPage = () => {
           </div>
         ) : null}
 
-        {isCuentaActiva && !(balanceNumber >= 10) ? (
-          <div className="mt-3 text-[11px] text-yellow-300">Necesitas mínimo 10 USDT para retirar.</div>
+        {isCuentaActiva ? (
+          <div className="mt-3 text-[11px] text-yellow-300">
+            El retiro mínimo neto es 10 USDT. Se descuenta comisión según la red (ej: BEP20 = 1 USDT).
+          </div>
         ) : null}
 
         {deposit && (
@@ -719,11 +734,11 @@ const WalletPage = () => {
 
             <div className="mt-4 space-y-3">
               <div>
-                <label className="block text-xs text-white/70 mb-2">Monto</label>
+                <label className="block text-xs text-white/70 mb-2">Monto (total)</label>
                 <input
                   value={withdrawForm.monto}
                   onChange={(e) => setWithdrawForm((p) => ({ ...p, monto: e.target.value }))}
-                  placeholder="5"
+                  placeholder="11"
                   className="w-full rounded-xl bg-doja-bg/30 border border-white/10 px-4 py-3 text-sm outline-none focus:border-doja-cyan/50"
                 />
                 {insufficientByForm ? <div className="mt-2 text-[11px] text-yellow-300">Saldo insuficiente.</div> : null}
@@ -769,10 +784,10 @@ const WalletPage = () => {
               <div className="mt-4 rounded-xl border border-doja-cyan/30 bg-doja-cyan/10 p-3">
                 <div className="text-xs text-white/70">Resumen</div>
                 <div className="mt-1 text-sm text-doja-cyan font-semibold">
-                  {Number(withdrawValidated?.monto || 0).toFixed(2)} + {Number(withdrawValidated?.fee || 0).toFixed(2)} = {Number(withdrawValidated?.total || 0).toFixed(2)} USDT
+                  {Number(withdrawValidated?.total || 0).toFixed(2)} - {Number(withdrawValidated?.fee || 0).toFixed(2)} = {Number(withdrawValidated?.monto || 0).toFixed(2)} USDT
                 </div>
                 {insufficientByValidated ? (
-                  <div className="mt-2 text-[11px] text-yellow-300">Saldo insuficiente para cubrir monto + fee.</div>
+                  <div className="mt-2 text-[11px] text-yellow-300">Saldo insuficiente para cubrir el total.</div>
                 ) : null}
               </div>
             ) : null}

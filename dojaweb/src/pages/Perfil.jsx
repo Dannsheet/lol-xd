@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Copy, Headset, HelpCircle } from 'lucide-react';
+import { Copy, Headset, HelpCircle, Send, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { getCuentaInfo, getMyReferralProfile, getMyReferralStats } from '../lib/api.js';
@@ -46,6 +46,14 @@ const Perfil = () => {
 
   const showToast = useCallback((type, message) => {
     setToast({ type, message });
+  }, []);
+
+  const openExternal = useCallback((url) => {
+    try {
+      window.open(String(url), '_blank', 'noreferrer');
+    } catch {
+      // ignore
+    }
   }, []);
 
   const inviteCode = useMemo(() => (serverInviteCode ? serverInviteCode : ''), [serverInviteCode]);
@@ -136,7 +144,7 @@ const Perfil = () => {
   return (
     <div className="min-h-full bg-doja-bg text-white p-4">
       <div className="relative flex items-center justify-between min-h-[32px]">
-        <h1 className="pageTitleNeon absolute left-1/2 -translate-x-1/2 text-2xl font-bold">A MI</h1>
+        <h1 className="pageTitleNeon absolute left-1/2 -translate-x-1/2 text-2xl font-bold">PERFIL</h1>
         <button
           type="button"
           onClick={() => navigate('/dashboard')}
@@ -223,6 +231,56 @@ const Perfil = () => {
           <div className="flex items-center gap-3">
             <Headset className="w-5 h-5 text-white/70" />
             <div className="text-sm font-semibold">Contactar servicio al cliente</div>
+          </div>
+          <div className="text-white/40">›</div>
+        </button>
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+        <div className="px-4 py-4">
+          <div className="text-sm font-semibold">Soporte</div>
+          <div className="mt-1 text-xs text-white/60">Telegram de soporte: t.me/dajoweb</div>
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => openExternal('https://t.me/dajoweb')}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 hover:bg-white/10 transition"
+            >
+              <Headset className="w-4 h-4" />
+              Abrir soporte
+            </button>
+            <button
+              type="button"
+              onClick={() => handleCopy('https://t.me/dajoweb')}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 hover:bg-white/10 transition"
+            >
+              <Copy className="w-4 h-4" />
+              Copiar
+            </button>
+          </div>
+        </div>
+
+        <div className="h-px bg-white/10" />
+        <button
+          type="button"
+          className="w-full flex items-center justify-between px-4 py-4 hover:bg-white/5 transition"
+          onClick={() => openExternal('https://t.me/canaldajoweb')}
+        >
+          <div className="flex items-center gap-3">
+            <Send className="w-5 h-5 text-white/70" />
+            <div className="text-sm font-semibold">Canal de Telegram</div>
+          </div>
+          <div className="text-white/40">›</div>
+        </button>
+        <div className="h-px bg-white/10" />
+        <button
+          type="button"
+          className="w-full flex items-center justify-between px-4 py-4 hover:bg-white/5 transition"
+          onClick={() => openExternal('https://t.me/DajoWebGrupo')}
+        >
+          <div className="flex items-center gap-3">
+            <Users className="w-5 h-5 text-white/70" />
+            <div className="text-sm font-semibold">Grupo de Telegram</div>
           </div>
           <div className="text-white/40">›</div>
         </button>
