@@ -8,7 +8,7 @@ const Tutorial = () => {
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <div className="mx-auto w-full max-w-[520px] px-4 py-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-[16px] font-semibold">Tutorial del sistema</h1>
+          <h1 className="text-[16px] font-semibold">Tutorial</h1>
           <button
             type="button"
             className="text-[12px] text-white/70 hover:text-white"

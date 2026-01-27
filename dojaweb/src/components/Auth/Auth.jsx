@@ -32,9 +32,7 @@ const Auth = () => {
       return true;
     }
   });
-  const [authMethod, setAuthMethod] = useState('email');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -103,7 +101,7 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const payload = authMethod === 'mobile' ? { phone, password } : { email, password };
+      const payload = { email, password };
       const { error } = await supabase.auth.signInWithPassword(payload);
       if (error) {
         console.error('signInWithPassword error:', error);
@@ -133,9 +131,7 @@ const Auth = () => {
         invitation_code: invitationCode.trim() || null
       };
 
-      const payload = authMethod === 'mobile'
-        ? { phone, password, options: { data: userData } }
-        : { email, password, options: { emailRedirectTo: window.location.origin, data: userData } };
+      const payload = { email, password, options: { emailRedirectTo: window.location.origin, data: userData } };
 
       const { data, error } = await supabase.auth.signUp(payload);
       if (error) {
@@ -171,7 +167,7 @@ const Auth = () => {
         return;
       }
 
-      showToast('success', authMethod === 'mobile' ? 'Revisa tu teléfono para verificar tu cuenta' : 'Revisa tu correo para verificar tu cuenta');
+      showToast('success', 'Revisa tu correo para verificar tu cuenta');
     } catch (err) {
       console.error('signUp exception:', err);
       showToast('error', formatSupabaseError(err));
@@ -247,134 +243,42 @@ const Auth = () => {
             flexDirection: 'column',
             gap: '16px'
           }}>
-            <div style={{
-              display: 'flex',
-              backgroundColor: '#1a1a1a',
-              border: '1px solid #333333',
-              borderRadius: '10px',
-              padding: '4px',
-              gap: '4px'
-            }}>
-              <button
-                type="button"
-                onClick={() => setAuthMethod('email')}
-                style={{
-                  flex: 1,
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  backgroundColor: authMethod === 'email' ? '#8B5CF6' : 'transparent',
-                  boxShadow:
-                    authMethod === 'email'
-                      ? '0 0 0 1px rgba(139, 92, 246, 0.35), 0 0 14px rgba(139, 92, 246, 0.35)'
-                      : 'none',
-                  color: '#ffffff',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  transition: 'box-shadow 0.2s'
-                }}
-              >
-                Correo electrónico
-              </button>
-              <button
-                type="button"
-                onClick={() => setAuthMethod('mobile')}
-                style={{
-                  flex: 1,
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  backgroundColor: authMethod === 'mobile' ? '#8B5CF6' : 'transparent',
-                  boxShadow:
-                    authMethod === 'mobile'
-                      ? '0 0 0 1px rgba(139, 92, 246, 0.35), 0 0 14px rgba(139, 92, 246, 0.35)'
-                      : 'none',
-                  color: '#ffffff',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  transition: 'box-shadow 0.2s'
-                }}
-              >
-                Móvil
-              </button>
-            </div>
-
             <div>
-              {authMethod === 'email' ? (
-                <>
-                  <label 
-                    htmlFor="email" 
-                    style={{
-                      display: 'block',
-                      fontSize: '12px',
-                      color: '#ffffff',
-                      marginBottom: '4px',
-                      fontWeight: '500'
-                    }}
-                  >
-                    Correo electrónico
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      backgroundColor: '#1a1a1a',
-                      color: '#ffffff',
-                      border: '1px solid #333333',
-                      borderRadius: '6px',
-                      boxSizing: 'border-box',
-                      fontSize: '14px',
-                      outline: 'none',
-                      transition: 'border-color 0.2s'
-                    }}
-                    placeholder="Correo electrónico"
-                    autoComplete='email'
-                    required
-                  />
-                </>
-              ) : (
-                <>
-                  <label 
-                    htmlFor="phone" 
-                    style={{
-                      display: 'block',
-                      fontSize: '12px',
-                      color: '#ffffff',
-                      marginBottom: '4px',
-                      fontWeight: '500'
-                    }}
-                  >
-                    Número de teléfono
-                  </label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      backgroundColor: '#1a1a1a',
-                      color: '#ffffff',
-                      border: '1px solid #333333',
-                      borderRadius: '6px',
-                      boxSizing: 'border-box',
-                      fontSize: '14px',
-                      outline: 'none',
-                      transition: 'border-color 0.2s'
-                    }}
-                    placeholder="Ej: +1 555 123 4567"
-                    autoComplete='tel'
-                    required
-                  />
-                </>
-              )}
+              <>
+                <label 
+                  htmlFor="email" 
+                  style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    color: '#ffffff',
+                    marginBottom: '4px',
+                    fontWeight: '500'
+                  }}
+                >
+                  Correo electrónico
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: '#1a1a1a',
+                    color: '#ffffff',
+                    border: '1px solid #333333',
+                    borderRadius: '6px',
+                    boxSizing: 'border-box',
+                    fontSize: '14px',
+                    outline: 'none',
+                    transition: 'border-color 0.2s'
+                  }}
+                  placeholder="Correo electrónico"
+                  autoComplete='email'
+                  required
+                />
+              </>
             </div>
 
           

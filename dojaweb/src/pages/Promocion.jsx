@@ -290,7 +290,7 @@ const Promocion = () => {
   return (
     <div className="min-h-full bg-doja-bg text-white p-4">
       <div className="relative flex justify-between items-center mb-6 min-h-[32px]">
-        <h1 className="pageTitleNeon absolute left-1/2 -translate-x-1/2 text-2xl font-bold">PROMOCIÓN</h1>
+        <h1 className="pageTitleNeon absolute left-1/2 -translate-x-1/2 text-2xl font-bold">ANÁLISIS</h1>
         <div />
       </div>
 

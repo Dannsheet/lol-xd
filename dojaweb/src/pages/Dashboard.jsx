@@ -125,7 +125,7 @@ const Dashboard = () => {
             <div className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg group-hover:shadow-purple-500/50">
               <BookOpen className="w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 text-white" />
             </div>
-            <span className="text-white text-sm md:text-base lg:text-lg font-medium mt-3">Tutorial del Sistema</span>
+            <span className="text-white text-sm md:text-base lg:text-lg font-medium mt-3">Tutorial</span>
           </button>
         </div>
       </div>

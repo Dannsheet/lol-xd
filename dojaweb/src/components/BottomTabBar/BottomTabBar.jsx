@@ -10,10 +10,10 @@ const BottomTabBar = () => {
   const tabs = useMemo(
     () => [
       { id: 'home', label: 'Hogar', icon: Home, to: '/dashboard' },
-      { id: 'promocion', label: 'Promoción', icon: Gift, to: '/promocion' },
+      { id: 'promocion', label: 'Análisis', icon: Gift, to: '/promocion' },
       { id: 'vip', label: 'VIP', icon: Award, to: '/vip' },
       { id: 'invitar', label: 'Invitar amigos', icon: UserPlus, to: '/invitar' },
-      { id: 'perfil', label: 'A mi', icon: User, to: '/perfil' },
+      { id: 'perfil', label: 'Perfil', icon: User, to: '/perfil' },
     ],
     [],
   );
