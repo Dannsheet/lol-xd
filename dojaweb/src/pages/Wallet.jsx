@@ -6,6 +6,7 @@ import {
   createVipIntent,
   getCuentaInfo,
   getVipCurrent,
+  setWithdrawPin,
   withdrawCreate,
   withdrawValidate,
 } from '../lib/api.js';
@@ -42,13 +43,6 @@ const WalletPage = () => {
     return String(deposit?.direccion || deposit?.address || deposit?.wallet_address || '').trim();
   }, [deposit]);
 
-  const depositQrValue = useMemo(() => {
-    if (!depositAddress) return '';
-    const raw = String(depositNetwork || '').trim().toUpperCase();
-    const scheme = raw ? raw.split('-')[0].toLowerCase() : 'bep20';
-    return `${scheme}:${depositAddress}?token=USDT`;
-  }, [depositAddress, depositNetwork]);
-
   const depositMemo = useMemo(() => {
     if (!deposit) return '';
     return String(deposit?.memo || deposit?.tag || deposit?.memo_tag || '').trim();
@@ -59,6 +53,7 @@ const WalletPage = () => {
   const [withdrawValidated, setWithdrawValidated] = useState(null);
   const [withdrawCreated, setWithdrawCreated] = useState(null);
   const [withdrawForm, setWithdrawForm] = useState({ monto: '', red: 'BEP20-USDT', direccion: '', pin: '' });
+  const [withdrawNeedsPinSetup, setWithdrawNeedsPinSetup] = useState(false);
 
   useEffect(() => {
     if (!toast) return;
@@ -112,7 +107,7 @@ const WalletPage = () => {
       setLoading(false);
       setHistoryLoading(false);
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     loadCuenta();
@@ -175,6 +170,7 @@ const WalletPage = () => {
     setWithdrawOpen(true);
     setWithdrawValidated(null);
     setWithdrawCreated(null);
+    setWithdrawNeedsPinSetup(false);
   };
 
   const closeWithdraw = () => {
@@ -219,7 +215,7 @@ const WalletPage = () => {
       try {
         const vip = await getVipCurrent();
         vipActive = Boolean(vip?.is_active);
-      } catch (e) {
+      } catch {
         // ignore
       }
 
@@ -286,11 +282,35 @@ const WalletPage = () => {
       const monto = Number(withdrawForm.monto);
       const data = await withdrawValidate({ monto, red: withdrawForm.red, pin: withdrawForm.pin });
       setWithdrawValidated(data || null);
+      setWithdrawNeedsPinSetup(false);
       showToast('success', 'Validación correcta');
     } catch (e) {
       console.error('[Wallet] /api/withdraw/validate error', e);
-      showToast('error', e?.message || 'No se pudo validar');
+      const msg = String(e?.message || 'No se pudo validar');
+      if (String(msg).toLowerCase().includes('pin de retiro no configurado')) {
+        setWithdrawNeedsPinSetup(true);
+      }
+      showToast('error', msg);
       setWithdrawValidated(null);
+    } finally {
+      setWithdrawLoading(false);
+    }
+  };
+
+  const handleWithdrawSetPin = async () => {
+    const pin = String(withdrawForm.pin || '').trim();
+    if (!pin || pin.length < 4) {
+      showToast('error', 'PIN inválido (mínimo 4 dígitos)');
+      return;
+    }
+    setWithdrawLoading(true);
+    try {
+      await setWithdrawPin(pin);
+      setWithdrawNeedsPinSetup(false);
+      showToast('success', 'PIN configurado. Ahora valida tu retiro.');
+    } catch (e) {
+      console.error('[Wallet] /api/set-withdraw-pin error', e);
+      showToast('error', e?.message || 'No se pudo configurar el PIN');
     } finally {
       setWithdrawLoading(false);
     }
@@ -310,7 +330,7 @@ const WalletPage = () => {
         direccion: withdrawForm.direccion,
         pin: withdrawForm.pin,
       });
-      setWithdrawCreated(data || null);
+      setWithdrawCreated(data?.retiro ?? null);
       showToast('success', 'Retiro creado. Procesando...');
       loadCuenta();
     } catch (e) {
@@ -764,6 +784,20 @@ const WalletPage = () => {
                 {withdrawCreated?.id ? (
                   <div className="mt-1 text-[11px] text-white/60 font-mono break-all">id: {String(withdrawCreated.id)}</div>
                 ) : null}
+              </div>
+            ) : null}
+
+            {withdrawNeedsPinSetup ? (
+              <div className="mt-4 rounded-xl border border-yellow-400/30 bg-yellow-400/10 p-3">
+                <div className="text-xs text-white/80">Tu PIN de retiro no está configurado.</div>
+                <button
+                  type="button"
+                  onClick={handleWithdrawSetPin}
+                  disabled={withdrawLoading}
+                  className="mt-3 w-full rounded-xl bg-yellow-400/15 hover:bg-yellow-400/20 border border-yellow-400/30 py-3 text-sm font-semibold text-yellow-200 transition disabled:opacity-50"
+                >
+                  {withdrawLoading ? 'Guardando...' : 'Configurar PIN'}
+                </button>
               </div>
             ) : null}
 

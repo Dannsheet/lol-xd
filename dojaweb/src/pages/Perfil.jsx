@@ -105,16 +105,23 @@ const Perfil = () => {
   }, []);
 
   const metrics = useMemo(
-    () => [
-      { label: 'Billetera electrónica (USDT)', value: saldo.toFixed(2) },
-      { label: 'Cartera flexible (USDT)', value: '0.00' },
-      { label: 'Desbloquear congelamiento (USDT)', value: '0.00' },
-      { label: 'Ingresos totales (USDT)', value: String(totalGanado || 0) },
-      { label: 'Ingresos totales por comisiones', value: String(totalComisiones || 0) },
-      { label: 'Recarga acumulada (USDT)', value: '0.00' },
-      { label: 'Retiro acumulativo (USDT)', value: '0' },
-      { label: 'Tamaño total del equipo', value: '0' },
-    ],
+    () => {
+      const baseTotalGanado = Number(totalGanado || 0);
+      const baseTotalComisiones = Number(totalComisiones || 0);
+      const gananciasTotales =
+        (Number.isFinite(baseTotalGanado) ? baseTotalGanado : 0) +
+        (Number.isFinite(baseTotalComisiones) ? baseTotalComisiones : 0);
+
+      return [
+        { label: 'Recarga acumulada (USDT)', value: saldo.toFixed(2) },
+        { label: 'Ganancias totales (USDT)', value: Number(gananciasTotales || 0).toFixed(2) },
+        { label: 'Desbloquear congelamiento (USDT)', value: '0.00' },
+        { label: 'Ingresos totales (USDT)', value: String(totalGanado || 0) },
+        { label: 'Ingresos totales por comisiones', value: String(totalComisiones || 0) },
+        { label: 'Retiro acumulativo (USDT)', value: '0' },
+        { label: 'Tamaño total del equipo', value: '0' },
+      ];
+    },
     [saldo, totalComisiones, totalGanado],
   );
 
