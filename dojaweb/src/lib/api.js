@@ -256,7 +256,8 @@ export const verVideo = ({ video_id, calificacion, plan_id } = {}) =>
   apiFetch('/api/videos/ver', { method: 'POST', body: { video_id, calificacion, plan_id } });
 
 export const getCuentaInfo = async () => {
-  const [cuentaRes, meRes] = await Promise.allSettled([apiFetch('/api/cuenta/info'), getMe()]);
+  const ts = Date.now();
+  const [cuentaRes, meRes] = await Promise.allSettled([apiFetch(`/api/cuenta/info?ts=${ts}`), getMe()]);
 
   const cuenta = cuentaRes.status === 'fulfilled' ? cuentaRes.value : null;
   const me = meRes.status === 'fulfilled' ? meRes.value : null;
