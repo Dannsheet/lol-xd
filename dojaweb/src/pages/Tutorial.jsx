@@ -19,10 +19,10 @@ const Tutorial = () => {
         </div>
 
         <div className="mt-4 rounded-2xl bg-white/5 border border-white/10 p-4 text-[12px] text-white/80 space-y-2">
-          <div>1) Regístrate y confirma tu correo.</div>
-          <div>2) Vincula tu Binance en la sección Binance.</div>
-          <div>3) Completa tareas / offerwalls (se integra después).</div>
-          <div>4) Solicita tu retiro en Retirar.</div>
+          <div>1) Realiza tu inversion inicial.</div>
+          <div>2) Completa las tareas.</div>
+          <div>3) Recibe tu recompensa.</div>
+          <div>4) ¡Comienza a Ganar con Dajo!</div>
         </div>
       </div>
     </div>

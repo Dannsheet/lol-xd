@@ -34,7 +34,19 @@ const VIP = () => {
     const rows = src
       .map((s) => {
         const raw = s?.expira_en || s?.expires_at || s?.vence_en || s?.expiresAt || null;
-        const d = raw ? new Date(raw) : null;
+        const d = (() => {
+          if (!raw) return null;
+          const str = String(raw).trim();
+          if (!str) return null;
+          const hasTz = /Z$|[+-]\d{2}:\d{2}$/.test(str);
+          if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(str)) {
+            return new Date(str.replace(' ', 'T') + 'Z');
+          }
+          if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(str) && !hasTz) {
+            return new Date(`${str}Z`);
+          }
+          return new Date(str);
+        })();
         const expiryMs = d && Number.isFinite(d.getTime()) ? d.getTime() : null;
         return {
           subscription_id: s?.subscription_id ?? s?.id ?? null,
@@ -111,6 +123,7 @@ const VIP = () => {
     setLoading(true);
     setLoadError(null);
     try {
+      let latestSubs = [];
       const { data: planesData, error: planesError } = await supabase
         .from('planes')
         .select('id,nombre,precio,limite_tareas,ganancia_diaria')
@@ -127,6 +140,7 @@ const VIP = () => {
       try {
         const myPlansResp = await getMyPlans();
         const planes = Array.isArray(myPlansResp?.planes) ? myPlansResp.planes : [];
+        latestSubs = planes;
         setActiveSubs(planes);
 
         if (planes.length) {
@@ -141,6 +155,7 @@ const VIP = () => {
         if (e?.status === 404 || lower.includes('sin suscripción activa') || lower.includes('sin suscripcion activa')) {
           setActiveSub(null);
           setActiveSubs([]);
+          latestSubs = [];
         } else {
           throw e;
         }
@@ -155,8 +170,8 @@ const VIP = () => {
           : [];
         setActivePlanIds(Array.from(new Set(ids)));
       } catch {
-        const fallbackIds = Array.isArray(activeSubs)
-          ? activeSubs
+        const fallbackIds = Array.isArray(latestSubs)
+          ? latestSubs
               .map((s) => Number(s?.plan_id))
               .filter((id) => Number.isFinite(id))
           : [];

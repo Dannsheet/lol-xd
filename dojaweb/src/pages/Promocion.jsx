@@ -269,6 +269,13 @@ const Promocion = () => {
 
   const ringStroke = 22;
 
+  const maskMemberEmail = (raw) => {
+    const s = String(raw || '').trim();
+    if (!s) return '—';
+    if (s.length <= 4) return s;
+    return `${s.slice(0, 4)}****`;
+  };
+
   const openMembers = async (level) => {
     const lvl = Number(level) || 1;
     setMembersLevel(lvl);
@@ -486,8 +493,8 @@ const Promocion = () => {
       ))}
 
       {membersOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-doja-dark/95 backdrop-blur p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl border border-white/10 bg-doja-dark/95 backdrop-blur p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="text-base font-semibold">Lista de miembros (Nivel {membersLevel})</div>
               <button
@@ -516,8 +523,7 @@ const Promocion = () => {
                       <div key={m?.id || m?.email} className="rounded-2xl border border-white/10 bg-white/5 p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <div className="text-sm font-semibold break-all">{m?.email || '—'}</div>
-                            <div className="text-xs text-white/60 break-all">{m?.id || ''}</div>
+                            <div className="text-sm font-semibold break-all">{maskMemberEmail(m?.email)}</div>
                           </div>
                           <div className="text-right">
                             <div className="text-xs text-white/60">Planes activos</div>
