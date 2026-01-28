@@ -124,8 +124,8 @@ const Perfil = () => {
         { label: 'Recarga acumulada (USDT)', value: saldo.toFixed(2) },
         { label: 'Ganancias totales (USDT)', value: Number(gananciasTotales || 0).toFixed(2) },
         { label: 'Desbloquear congelamiento (USDT)', value: '0.00' },
-        { label: 'Ingresos totales (USDT)', value: String(totalGanado || 0) },
-        { label: 'Ingresos totales por comisiones', value: String(totalComisiones || 0) },
+        { label: 'Ingresos totales (USDT)', value: (Number.isFinite(baseTotalGanado) ? baseTotalGanado : 0).toFixed(2) },
+        { label: 'Ingresos totales por comisiones', value: (Number.isFinite(baseTotalComisiones) ? baseTotalComisiones : 0).toFixed(2) },
         { label: 'Retiro acumulativo (USDT)', value: '0' },
         { label: 'Tamaño total del equipo', value: '0' },
       ];
