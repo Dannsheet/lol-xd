@@ -143,6 +143,8 @@ const WalletPage = () => {
 
   const formattedBalance = useMemo(() => Number(saldoInterno || 0).toFixed(2), [saldoInterno]);
 
+  const formattedSaldoGanancias = useMemo(() => Number(saldoGanancias || 0).toFixed(2), [saldoGanancias]);
+
   const withdrawBalanceNumber = useMemo(() => Number(saldoGanancias || 0), [saldoGanancias]);
 
   const totalGanadoNumber = useMemo(() => {
@@ -501,7 +503,7 @@ const WalletPage = () => {
           </div>
           <div className="mt-2 flex items-center justify-between">
             <div className="text-[12px] text-white/70">Total ganado</div>
-            <div className="text-[12px] text-white/80">{formattedGanado} USDT</div>
+            <div className="text-[12px] text-white/80">{formattedSaldoGanancias} USDT</div>
           </div>
           <div className="mt-2 flex items-center justify-between">
             <div className="text-[12px] text-white/70">Estado</div>
