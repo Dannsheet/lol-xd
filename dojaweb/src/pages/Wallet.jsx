@@ -19,6 +19,7 @@ const WalletPage = () => {
   const [toast, setToast] = useState(null);
 
   const [saldoInterno, setSaldoInterno] = useState(0);
+  const [saldoGanancias, setSaldoGanancias] = useState(0);
   const [totalGanado, setTotalGanado] = useState(null);
 
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -89,6 +90,8 @@ const WalletPage = () => {
       const data = await getCuentaInfo();
       const next = Number(data?.balance || 0);
       setSaldoInterno(Number.isFinite(next) ? next : 0);
+      const sg = Number(data?.saldo_ganancias);
+      setSaldoGanancias(Number.isFinite(sg) ? sg : 0);
       const tg = Number(data?.total_ganado);
       setTotalGanado(Number.isFinite(tg) ? tg : null);
       setHistory(data?.movimientos_recientes ?? null);
@@ -100,6 +103,7 @@ const WalletPage = () => {
       console.error('[Wallet] /cuenta/info error', e);
       showToast('error', e?.message || 'No se pudo cargar tu cuenta');
       setSaldoInterno(0);
+      setSaldoGanancias(0);
       setTotalGanado(null);
       setHistory(null);
       return null;
@@ -137,8 +141,9 @@ const WalletPage = () => {
       });
   }, [showToast, vipPlanIdFromNav]);
 
-  const balanceNumber = useMemo(() => Number(saldoInterno || 0), [saldoInterno]);
   const formattedBalance = useMemo(() => Number(saldoInterno || 0).toFixed(2), [saldoInterno]);
+
+  const withdrawBalanceNumber = useMemo(() => Number(saldoGanancias || 0), [saldoGanancias]);
 
   const totalGanadoNumber = useMemo(() => {
     if (Number.isFinite(Number(totalGanado))) return Number(totalGanado);
@@ -280,7 +285,7 @@ const WalletPage = () => {
     if (!withdrawForm.direccion.trim()) return 'Debes ingresar una dirección externa';
     if (!withdrawForm.pin.trim()) return 'Debes ingresar el PIN';
     if (!isCuentaActiva) return 'Tu cuenta no está activa';
-    if (monto > balanceNumber) return 'Saldo insuficiente';
+    if (monto > withdrawBalanceNumber) return 'Saldo insuficiente';
     return '';
   };
 
@@ -435,14 +440,17 @@ const WalletPage = () => {
 
   const withdrawMontoNumber = useMemo(() => Number(withdrawForm.monto), [withdrawForm.monto]);
   const insufficientByForm = useMemo(
-    () => Number.isFinite(withdrawMontoNumber) && withdrawMontoNumber > 0 && withdrawMontoNumber > balanceNumber,
-    [withdrawMontoNumber, balanceNumber],
+    () =>
+      Number.isFinite(withdrawMontoNumber) &&
+      withdrawMontoNumber > 0 &&
+      withdrawMontoNumber > withdrawBalanceNumber,
+    [withdrawMontoNumber, withdrawBalanceNumber],
   );
   const insufficientByValidated = useMemo(() => {
     const total = Number(withdrawValidated?.total);
     if (!Number.isFinite(total) || total <= 0) return false;
-    return total > balanceNumber;
-  }, [withdrawValidated?.total, balanceNumber]);
+    return total > withdrawBalanceNumber;
+  }, [withdrawValidated?.total, withdrawBalanceNumber]);
 
   return (
     <div className="min-h-screen bg-doja-bg text-white">
