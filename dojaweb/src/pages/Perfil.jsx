@@ -11,8 +11,7 @@ const Perfil = () => {
 
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
-  const [saldo, setSaldo] = useState(0);
-  const [totalGanado, setTotalGanado] = useState(0);
+  const [recargaAcumulada, setRecargaAcumulada] = useState(0);
   const [ganadoReferidos, setGanadoReferidos] = useState(0);
   const [ganadoVideos, setGanadoVideos] = useState(0);
   const [retiroAcumulativo, setRetiroAcumulativo] = useState(0);
@@ -80,19 +79,16 @@ const Perfil = () => {
     setLoading(true);
     try {
       const cuenta = await getCuentaInfo();
-      const nextSaldo = Number(cuenta?.balance ?? cuenta?.saldo_interno ?? 0);
-      const nextTotal = Number(cuenta?.total_ganado ?? cuenta?.totalGanado ?? 0);
+      const nextRecarga = Number(cuenta?.recarga_acumulada ?? 0);
       const nextRef = Number(cuenta?.ganado_referidos ?? 0);
       const nextVideos = Number(cuenta?.ganado_videos ?? 0);
       const nextWithdrawn = Number(cuenta?.retiro_acumulativo ?? 0);
-      setSaldo(Number.isFinite(nextSaldo) ? nextSaldo : 0);
-      setTotalGanado(Number.isFinite(nextTotal) ? nextTotal : 0);
+      setRecargaAcumulada(Number.isFinite(nextRecarga) ? nextRecarga : 0);
       setGanadoReferidos(Number.isFinite(nextRef) ? nextRef : 0);
       setGanadoVideos(Number.isFinite(nextVideos) ? nextVideos : 0);
       setRetiroAcumulativo(Number.isFinite(nextWithdrawn) ? nextWithdrawn : 0);
     } catch {
-      setSaldo(0);
-      setTotalGanado(0);
+      setRecargaAcumulada(0);
       setGanadoReferidos(0);
       setGanadoVideos(0);
       setRetiroAcumulativo(0);
@@ -151,7 +147,6 @@ const Perfil = () => {
 
   const metrics = useMemo(
     () => {
-      const baseTotalGanado = Number(totalGanado || 0);
       const baseTotalComisiones = Number(totalComisiones || 0);
       const baseReferidos = Number(ganadoReferidos || 0);
       const baseVideos = Number(ganadoVideos || 0);
@@ -160,15 +155,14 @@ const Perfil = () => {
         (Number.isFinite(baseVideos) ? baseVideos : 0);
 
       return [
-        { label: 'Recarga acumulada (USDT)', value: saldo.toFixed(2) },
-        { label: 'Ganancias totales (USDT)', value: Number(gananciasTotales || 0).toFixed(2) },
-        { label: 'Ingresos totales (USDT)', value: (Number.isFinite(baseTotalGanado) ? baseTotalGanado : 0).toFixed(2) },
-        { label: 'Ingresos totales por comisiones', value: (Number.isFinite(baseTotalComisiones) ? baseTotalComisiones : 0).toFixed(2) },
-        { label: 'Retiro acumulativo (USDT)', value: Number(retiroAcumulativo || 0).toFixed(2) },
+        { label: 'Valor Recargado (USDT)', value: Number(recargaAcumulada || 0).toFixed(2) },
+        { label: 'Videos + Referidos', value: Number(gananciasTotales || 0).toFixed(2) },
+        { label: 'Referidos', value: (Number.isFinite(baseTotalComisiones) ? baseTotalComisiones : 0).toFixed(2) },
+        { label: 'Valor retirado', value: Number(retiroAcumulativo || 0).toFixed(2) },
         { label: 'Tamaño total del equipo', value: String(teamSize || 0) },
       ];
     },
-    [ganadoReferidos, ganadoVideos, retiroAcumulativo, saldo, teamSize, totalComisiones, totalGanado],
+    [ganadoReferidos, ganadoVideos, recargaAcumulada, retiroAcumulativo, teamSize, totalComisiones],
   );
 
   const neonCyanStyle = useMemo(

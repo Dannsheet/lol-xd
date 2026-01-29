@@ -273,7 +273,7 @@ const WalletPage = () => {
 
     const neto = monto - fee;
     if (!Number.isFinite(neto) || neto <= 0) return 'Monto inválido';
-    if (neto < 10) return `El retiro mínimo neto es 10 USDT. Ingresa mínimo ${(10 + fee).toFixed(2)} USDT`;
+    if (neto < 11) return `El retiro mínimo neto es 11 USDT. Ingresa mínimo ${(11 + fee).toFixed(2)} USDT`;
 
     if (!withdrawForm.direccion.trim()) return 'Debes ingresar una dirección externa';
     if (!withdrawForm.pin.trim()) return 'Debes ingresar el PIN';
@@ -360,7 +360,7 @@ const WalletPage = () => {
     if (d.includes('pendiente')) return 'pendiente';
     if (d.includes('enviado')) return 'enviado';
     if (d.includes('completado')) return 'completado';
-    if (d.includes('confirmado')) return 'completado';
+    if (d.includes('confirmado')) return 'canselado';
     if (d.includes('aprobado')) return 'aprobado';
     if (d.includes('rechazado')) return 'rechazado';
     return '';
@@ -382,7 +382,8 @@ const WalletPage = () => {
       const amount = raw?.monto != null ? Number(raw.monto) : null;
       const createdAt = raw?.creado_en || null;
       const kind = kindFromTipo(raw?.tipo);
-      const status = extractStatusFromDescripcion(raw?.descripcion);
+      const directEstado = String(raw?.estado || '').trim().toLowerCase();
+      const status = directEstado || extractStatusFromDescripcion(raw?.descripcion);
 
       return {
         id: raw?.id,
@@ -543,7 +544,7 @@ const WalletPage = () => {
 
         {isCuentaActiva ? (
           <div className="mt-3 text-[11px] text-yellow-300">
-            El retiro mínimo neto es 10 USDT. Se descuenta comisión según la red (ej: BEP20 = 1 USDT).
+            El retiro mínimo neto es 11 USDT. Se descontará comisión de 1 usdt por retiro
           </div>
         ) : null}
 
@@ -783,7 +784,7 @@ const WalletPage = () => {
             {withdrawCreated ? (
               <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3">
                 <div className="text-xs text-white/70">Estado</div>
-                <div className="mt-1 text-sm text-white/80">pendiente</div>
+                <div className="mt-1 text-sm text-white/80">{String(withdrawCreated?.estado || 'pendiente')}</div>
                 {withdrawCreated?.id ? (
                   <div className="mt-1 text-[11px] text-white/60 font-mono break-all">id: {String(withdrawCreated.id)}</div>
                 ) : null}
