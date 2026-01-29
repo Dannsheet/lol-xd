@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { getMe } from '../lib/api.js';
 
 const AdminRoute = () => {
   const { session, user, loading } = useAuth();
@@ -20,7 +21,15 @@ const AdminRoute = () => {
       setChecking(true);
       setError(null);
       try {
-        if (mounted) setIsAdmin(false);
+        const me = await getMe();
+        const flag = Boolean(me?.usuario?.is_admin);
+        if (mounted) setIsAdmin(flag);
+      } catch (e) {
+        const msg = String(e?.message || 'No se pudo validar permisos de administrador');
+        if (mounted) {
+          setIsAdmin(false);
+          setError(msg);
+        }
       } finally {
         if (mounted) setChecking(false);
       }

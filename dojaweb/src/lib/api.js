@@ -76,6 +76,27 @@ export const apiFetch = async (path, { method = 'GET', body, headers: extraHeade
 
 export const getMe = () => apiFetch('/api/me');
 
+export const adminGetSummary = () => apiFetch('/api/admin/summary');
+
+export const adminGetUsers = ({ search, limit, offset } = {}) => {
+  const params = new URLSearchParams();
+  if (search) params.set('search', String(search));
+  if (Number.isFinite(Number(limit))) params.set('limit', String(limit));
+  if (Number.isFinite(Number(offset))) params.set('offset', String(offset));
+  const q = params.toString();
+  return apiFetch(`/api/admin/users${q ? `?${q}` : ''}`);
+};
+
+export const adminGetUserDetail = (userId) => {
+  if (!userId) throw new Error('Falta userId');
+  return apiFetch(`/api/admin/users/${encodeURIComponent(String(userId))}`);
+};
+
+export const adminGetUserReferrals = (userId) => {
+  if (!userId) throw new Error('Falta userId');
+  return apiFetch(`/api/admin/users/${encodeURIComponent(String(userId))}/referrals`);
+};
+
 export const getWalletHistory = () => apiFetch('/api/wallet/history');
 
 export const createDepositAddress = () => apiFetch('/api/deposit/address', { method: 'POST' });
