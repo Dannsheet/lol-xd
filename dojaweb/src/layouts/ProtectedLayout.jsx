@@ -7,7 +7,11 @@ const ProtectedLayout = () => {
   return (
     <div className="flex flex-col h-screen">
       <AnnouncementsModal />
-      <div className="flex-1 overflow-y-auto pb-20">
+      <div
+        className="flex-1 min-h-0 overflow-y-auto pb-20"
+        data-scroll-container="main"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         <Outlet />
       </div>
       <BottomTabBar />

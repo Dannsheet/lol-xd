@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider } from './lib/auth.jsx';
 import ProtectedRoute from './routes/ProtectedRoute';
 import AuthPage from './pages/AuthPage';
@@ -16,10 +16,47 @@ import Tutorial from './pages/Tutorial';
 import NotFound from './pages/NotFound';
 import AdminRoute from './routes/AdminRoute';
 
+const ScrollRestore = () => {
+  const location = useLocation();
+
+  React.useEffect(() => {
+    try {
+      const html = document.documentElement;
+      const body = document.body;
+
+      html.style.overflow = '';
+      html.style.position = '';
+      html.style.height = '';
+
+      body.style.overflow = '';
+      body.style.position = '';
+      body.style.height = '';
+    } catch {
+      // ignore
+    }
+
+    // Scroll to top of the app's main scroll container if present.
+    // Falls back to window scroll for pages that use body scrolling.
+    try {
+      const el = document.querySelector('[data-scroll-container="main"]');
+      if (el && typeof el.scrollTo === 'function') {
+        el.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      } else {
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      }
+    } catch {
+      // ignore
+    }
+  }, [location.pathname]);
+
+  return null;
+};
+
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ScrollRestore />
         <Routes>
           <Route path="/" element={<AuthPage />} />
           <Route element={<ProtectedRoute />}>
