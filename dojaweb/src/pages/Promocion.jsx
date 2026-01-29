@@ -56,9 +56,9 @@ const useCountUp = (target, { durationMs = 900, decimals = 0 } = {}) => {
 const NivelCard = ({ nivel, neonStyle, onOpenMembers }) => {
   const plantillaTotal = useCountUp(nivel?.plantillaTotal, { durationMs: 900, decimals: 0 });
   const numeroActivos = useCountUp(nivel?.numeroActivos, { durationMs: 900, decimals: 0 });
-  const equipoRecarga = useCountUp(nivel?.equipoRecarga, { durationMs: 900, decimals: 0 });
-  const regresoTotal = useCountUp(nivel?.regresoTotal, { durationMs: 900, decimals: 0 });
-  const gananciasHoy = useCountUp(nivel?.gananciasHoy, { durationMs: 900, decimals: 0 });
+  const equipoRecarga = useCountUp(nivel?.equipoRecarga, { durationMs: 900, decimals: 2 });
+  const regresoTotal = useCountUp(nivel?.regresoTotal, { durationMs: 900, decimals: 2 });
+  const gananciasHoy = useCountUp(nivel?.gananciasHoy, { durationMs: 900, decimals: 2 });
 
   return (
     <div className="bg-doja-dark/70 backdrop-blur border border-white/10 rounded-2xl p-5 mb-4">

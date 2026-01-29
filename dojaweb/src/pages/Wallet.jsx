@@ -360,7 +360,7 @@ const WalletPage = () => {
     if (d.includes('pendiente')) return 'pendiente';
     if (d.includes('enviado')) return 'enviado';
     if (d.includes('completado')) return 'completado';
-    if (d.includes('confirmado')) return 'canselado';
+    if (d.includes('confirmado')) return 'confirmado';
     if (d.includes('aprobado')) return 'aprobado';
     if (d.includes('rechazado')) return 'rechazado';
     return '';
@@ -415,7 +415,7 @@ const WalletPage = () => {
     () =>
       normalizedHistory.filter(
         (m) =>
-          m.kind === 'retiro' && ['enviado', 'aprobado', 'completado'].includes(m.status),
+          m.kind === 'retiro' && ['enviado', 'aprobado', 'confirmado', 'completado'].includes(m.status),
       ),
     [normalizedHistory],
   );
@@ -423,7 +423,7 @@ const WalletPage = () => {
   const retirosOtros = useMemo(
     () =>
       normalizedHistory.filter(
-        (m) => m.kind === 'retiro' && !['pendiente', 'enviado', 'aprobado', 'completado'].includes(m.status),
+        (m) => m.kind === 'retiro' && !['pendiente', 'enviado', 'aprobado', 'confirmado', 'completado'].includes(m.status),
       ),
     [normalizedHistory],
   );
