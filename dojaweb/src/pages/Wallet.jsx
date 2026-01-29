@@ -30,6 +30,9 @@ const WalletPage = () => {
   const [deposit, setDeposit] = useState(null);
   const [confirmDepositLoading, setConfirmDepositLoading] = useState(false);
 
+  const [vipActive, setVipActive] = useState(false);
+  const [vipLoading, setVipLoading] = useState(false);
+
   const [pollingActive, setPollingActive] = useState(false);
 
   const lastBalanceRef = useRef(0);
@@ -119,6 +122,32 @@ const WalletPage = () => {
   }, [showToast]);
 
   useEffect(() => {
+    let alive = true;
+    if (!user?.id) return () => {
+      alive = false;
+    };
+
+    setVipLoading(true);
+    getVipCurrent()
+      .then((vip) => {
+        if (!alive) return;
+        setVipActive(Boolean(vip?.is_active));
+      })
+      .catch(() => {
+        if (!alive) return;
+        setVipActive(false);
+      })
+      .finally(() => {
+        if (!alive) return;
+        setVipLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
     loadCuenta();
   }, [loadCuenta]);
 
@@ -154,7 +183,7 @@ const WalletPage = () => {
 
   const estado = useMemo(() => '—', []);
 
-  const isCuentaActiva = useMemo(() => true, []);
+  const isCuentaActiva = useMemo(() => Boolean(vipActive), [vipActive]);
 
   const withdrawFees = useMemo(
     () => ({
@@ -168,7 +197,7 @@ const WalletPage = () => {
 
   const openWithdraw = () => {
     if (!isCuentaActiva) {
-      showToast('error', 'Tu cuenta no está activa');
+      showToast('error', 'Debes tener un plan activo para retirar');
       return;
     }
     setWithdrawOpen(true);
@@ -516,7 +545,7 @@ const WalletPage = () => {
           <button
             type="button"
             onClick={openWithdraw}
-            disabled={!isCuentaActiva}
+            disabled={!isCuentaActiva || vipLoading}
             className="rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 p-4 text-left transition disabled:opacity-50"
           >
             <div className="flex items-center gap-2 text-white font-semibold">
@@ -538,7 +567,7 @@ const WalletPage = () => {
 
         {!isCuentaActiva ? (
           <div className="mt-3 text-[11px] text-red-400">
-            Tu cuenta no está activa. No puedes retirar hasta que esté activa.
+            Debes tener un plan activo para poder retirar.
           </div>
         ) : null}
 

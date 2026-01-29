@@ -462,17 +462,6 @@ const Promocion = () => {
         </div>
       </div>
 
-      <button
-        type="button"
-        className="w-full bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl p-4 flex items-center justify-between transition-all duration-200 mb-6"
-      >
-        <div className="flex items-center gap-3">
-          <Calendar className="w-5 h-5" />
-          <span className="text-sm sm:text-base">Seleccionar fecha de consulta</span>
-        </div>
-        <ChevronRight className="w-5 h-5" />
-      </button>
-
       <div className="bg-doja-dark/70 backdrop-blur border border-white/10 rounded-2xl p-4 mb-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-base font-semibold">Recarga total del equipo</h3>
