@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Copy, QrCode, RefreshCw, Send, Wallet as WalletIcon } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth.js';
 import {
   createDepositRequest,
   createVipIntent,
@@ -14,13 +15,13 @@ import {
 const WalletPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
 
   const [saldoInterno, setSaldoInterno] = useState(0);
   const [saldoGanancias, setSaldoGanancias] = useState(0);
-  const [totalGanado, setTotalGanado] = useState(null);
 
   const [historyLoading, setHistoryLoading] = useState(false);
   const [history, setHistory] = useState(null);
@@ -76,6 +77,13 @@ const WalletPage = () => {
     [showToast],
   );
 
+  const openWithdrawSupportTelegram = useCallback(() => {
+    const email = String(user?.email || '').trim();
+    const message = `Hola soy ${email || ''} tengo problemas con mi retiro`;
+    const url = `https://t.me/dajoweb?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }, [user?.email]);
+
   const shouldOpenWithdrawFromNav = useMemo(() => Boolean(location?.state?.openWithdraw), [location?.state]);
 
   useEffect(() => {
@@ -92,8 +100,6 @@ const WalletPage = () => {
       setSaldoInterno(Number.isFinite(next) ? next : 0);
       const sg = Number(data?.saldo_ganancias);
       setSaldoGanancias(Number.isFinite(sg) ? sg : 0);
-      const tg = Number(data?.total_ganado);
-      setTotalGanado(Number.isFinite(tg) ? tg : null);
       setHistory(data?.movimientos_recientes ?? null);
 
       return {
@@ -104,7 +110,6 @@ const WalletPage = () => {
       showToast('error', e?.message || 'No se pudo cargar tu cuenta');
       setSaldoInterno(0);
       setSaldoGanancias(0);
-      setTotalGanado(null);
       setHistory(null);
       return null;
     } finally {
@@ -147,20 +152,6 @@ const WalletPage = () => {
 
   const withdrawBalanceNumber = useMemo(() => Number(saldoGanancias || 0), [saldoGanancias]);
 
-  const totalGanadoNumber = useMemo(() => {
-    if (Number.isFinite(Number(totalGanado))) return Number(totalGanado);
-
-    const items = Array.isArray(history) ? history : [];
-    return items.reduce((acc, m) => {
-      const tipo = String(m?.tipo || '').toLowerCase();
-      const monto = Number(m?.monto || 0);
-      if (!Number.isFinite(monto) || monto <= 0) return acc;
-      if (['deposito', 'depósito', 'deposit'].includes(tipo)) return acc;
-      return acc + monto;
-    }, 0);
-  }, [history, totalGanado]);
-
-  const formattedGanado = useMemo(() => totalGanadoNumber.toFixed(2), [totalGanadoNumber]);
   const estado = useMemo(() => '—', []);
 
   const isCuentaActiva = useMemo(() => true, []);
@@ -602,6 +593,14 @@ const WalletPage = () => {
                 >
                   {confirmDepositLoading ? 'Confirmando...' : 'Confirmar pago'}
                 </button>
+
+                <button
+                  type="button"
+                  onClick={openWithdrawSupportTelegram}
+                  className="mt-3 w-full rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 py-3 text-sm font-semibold text-white/80 transition"
+                >
+                  Problema al retirar
+                </button>
               </div>
             </div>
             <div className="mt-3 text-[11px] text-white/60">
@@ -844,6 +843,14 @@ const WalletPage = () => {
                 {withdrawLoading ? 'Creando...' : 'Confirmar'}
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={openWithdrawSupportTelegram}
+              className="mt-3 w-full rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 py-3 text-sm font-semibold text-white/80 transition"
+            >
+              Problema al retirar
+            </button>
           </div>
         </div>
       )}
