@@ -400,11 +400,6 @@ const WalletPage = () => {
 
   const normalizedHistory = useMemo(() => (historyItems ? historyItems.map(normalizeMov) : []), [historyItems, normalizeMov]);
 
-  const depositosPendientes = useMemo(
-    () => normalizedHistory.filter((m) => m.kind === 'deposito' && m.status === 'pendiente'),
-    [normalizedHistory],
-  );
-
   const depositosOtros = useMemo(
     () => normalizedHistory.filter((m) => m.kind === 'deposito' && m.status !== 'pendiente'),
     [normalizedHistory],
@@ -531,6 +526,15 @@ const WalletPage = () => {
           </button>
         </div>
 
+        <button
+          type="button"
+          onClick={openWithdrawSupportTelegram}
+          className="mt-3 w-full rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 p-4 text-left transition"
+        >
+          <div className="text-[13px] font-semibold text-white/90">Problema al retirar</div>
+          <div className="mt-1 text-[12px] text-white/70">Hablar con soporte en Telegram</div>
+        </button>
+
         {!isCuentaActiva ? (
           <div className="mt-3 text-[11px] text-red-400">
             Tu cuenta no está activa. No puedes retirar hasta que esté activa.
@@ -609,32 +613,6 @@ const WalletPage = () => {
             </div>
           </div>
         )}
-
-        <div className="mt-4 rounded-2xl bg-white/5 border border-white/10 p-4">
-          <div className="text-[13px] font-semibold">Depósitos pendientes</div>
-          {historyLoading ? (
-            <div className="mt-2 text-[12px] text-white/60">Cargando...</div>
-          ) : depositosPendientes.length ? (
-            <div className="mt-3 space-y-2">
-              {depositosPendientes.slice(0, 10).map((m, idx) => (
-                <div key={m.id || idx} className="rounded-xl border border-white/10 bg-doja-bg/30 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-[12px] text-white/80">depósito</div>
-                    <div className="text-[12px] text-yellow-300 font-semibold">pendiente</div>
-                  </div>
-                  <div className="mt-1 text-[11px] text-white/60 font-mono break-words">
-                    {m.amount != null ? `monto: ${m.amount.toFixed(2)} USDT` : ''}{m.createdAt ? ` · ${String(m.createdAt)}` : ''}
-                  </div>
-                  {m.descripcion ? (
-                    <div className="mt-1 text-[11px] text-white/60 break-words">{String(m.descripcion)}</div>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-2 text-[12px] text-white/60">No tienes depósitos pendientes</div>
-          )}
-        </div>
 
         <div className="mt-4 rounded-2xl bg-white/5 border border-white/10 p-4">
           <div className="text-[13px] font-semibold">Depósitos</div>
