@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Copy, Headset, HelpCircle, Send, Users } from 'lucide-react';
+import { Copy, Headset, Send, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { getCuentaInfo, getMyReferralProfile, getMyReferralStats } from '../lib/api.js';
+import { getCuentaInfo, getMe, getMyReferralProfile, getMyReferralStats } from '../lib/api.js';
 import './Perfil.css';
 
 const Perfil = () => {
@@ -13,7 +13,12 @@ const Perfil = () => {
   const [toast, setToast] = useState(null);
   const [saldo, setSaldo] = useState(0);
   const [totalGanado, setTotalGanado] = useState(0);
+  const [ganadoReferidos, setGanadoReferidos] = useState(0);
+  const [ganadoVideos, setGanadoVideos] = useState(0);
+  const [retiroAcumulativo, setRetiroAcumulativo] = useState(0);
   const [totalComisiones, setTotalComisiones] = useState(0);
+  const [teamSize, setTeamSize] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [comisionesError, setComisionesError] = useState('');
   const [serverInviteCode, setServerInviteCode] = useState('');
   const [inviteCodeLoading, setInviteCodeLoading] = useState(true);
@@ -77,11 +82,20 @@ const Perfil = () => {
       const cuenta = await getCuentaInfo();
       const nextSaldo = Number(cuenta?.balance ?? cuenta?.saldo_interno ?? 0);
       const nextTotal = Number(cuenta?.total_ganado ?? cuenta?.totalGanado ?? 0);
+      const nextRef = Number(cuenta?.ganado_referidos ?? 0);
+      const nextVideos = Number(cuenta?.ganado_videos ?? 0);
+      const nextWithdrawn = Number(cuenta?.retiro_acumulativo ?? 0);
       setSaldo(Number.isFinite(nextSaldo) ? nextSaldo : 0);
       setTotalGanado(Number.isFinite(nextTotal) ? nextTotal : 0);
+      setGanadoReferidos(Number.isFinite(nextRef) ? nextRef : 0);
+      setGanadoVideos(Number.isFinite(nextVideos) ? nextVideos : 0);
+      setRetiroAcumulativo(Number.isFinite(nextWithdrawn) ? nextWithdrawn : 0);
     } catch {
       setSaldo(0);
       setTotalGanado(0);
+      setGanadoReferidos(0);
+      setGanadoVideos(0);
+      setRetiroAcumulativo(0);
     } finally {
       setLoading(false);
     }
@@ -97,13 +111,36 @@ const Perfil = () => {
       try {
         const resp = await getMyReferralStats();
         const v = Number(resp?.totalIngresos ?? 0);
+        const niveles = Array.isArray(resp?.niveles) ? resp.niveles : [];
+        const size = niveles.reduce((acc, n) => acc + (Number(n?.plantillaTotal || 0) || 0), 0);
         if (!alive) return;
         setComisionesError('');
         setTotalComisiones(Number.isFinite(v) ? v : 0);
+        setTeamSize(Number.isFinite(size) ? size : 0);
       } catch (e) {
         if (!alive) return;
         setTotalComisiones(0);
+        setTeamSize(0);
         setComisionesError(String(e?.message || 'No se pudieron cargar las comisiones'));
+      }
+    };
+    run();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    const run = async () => {
+      try {
+        const me = await getMe();
+        const flag = Boolean(me?.usuario?.is_admin);
+        if (!alive) return;
+        setIsAdmin(flag);
+      } catch {
+        if (!alive) return;
+        setIsAdmin(false);
       }
     };
     run();
@@ -116,21 +153,22 @@ const Perfil = () => {
     () => {
       const baseTotalGanado = Number(totalGanado || 0);
       const baseTotalComisiones = Number(totalComisiones || 0);
+      const baseReferidos = Number(ganadoReferidos || 0);
+      const baseVideos = Number(ganadoVideos || 0);
       const gananciasTotales =
-        (Number.isFinite(baseTotalGanado) ? baseTotalGanado : 0) +
-        (Number.isFinite(baseTotalComisiones) ? baseTotalComisiones : 0);
+        (Number.isFinite(baseReferidos) ? baseReferidos : 0) +
+        (Number.isFinite(baseVideos) ? baseVideos : 0);
 
       return [
         { label: 'Recarga acumulada (USDT)', value: saldo.toFixed(2) },
         { label: 'Ganancias totales (USDT)', value: Number(gananciasTotales || 0).toFixed(2) },
-        { label: 'Desbloquear congelamiento (USDT)', value: '0.00' },
         { label: 'Ingresos totales (USDT)', value: (Number.isFinite(baseTotalGanado) ? baseTotalGanado : 0).toFixed(2) },
         { label: 'Ingresos totales por comisiones', value: (Number.isFinite(baseTotalComisiones) ? baseTotalComisiones : 0).toFixed(2) },
-        { label: 'Retiro acumulativo (USDT)', value: '0' },
-        { label: 'Tamaño total del equipo', value: '0' },
+        { label: 'Retiro acumulativo (USDT)', value: Number(retiroAcumulativo || 0).toFixed(2) },
+        { label: 'Tamaño total del equipo', value: String(teamSize || 0) },
       ];
     },
-    [saldo, totalComisiones, totalGanado],
+    [ganadoReferidos, ganadoVideos, retiroAcumulativo, saldo, teamSize, totalComisiones, totalGanado],
   );
 
   const neonCyanStyle = useMemo(
@@ -152,6 +190,16 @@ const Perfil = () => {
         >
           Volver
         </button>
+
+        {isAdmin ? (
+          <button
+            type="button"
+            onClick={() => showToast('success', 'Administración: próximamente')}
+            className="text-sm text-white/60 hover:text-doja-light-cyan transition"
+          >
+            Administrar
+          </button>
+        ) : null}
       </div>
 
       {toast && (
@@ -208,32 +256,6 @@ const Perfil = () => {
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-        <button
-          type="button"
-          className="w-full flex items-center justify-between px-4 py-4 hover:bg-white/5 transition"
-          onClick={() => showToast('success', 'Centro de ayuda: próximamente')}
-        >
-          <div className="flex items-center gap-3">
-            <HelpCircle className="w-5 h-5 text-white/70" />
-            <div className="text-sm font-semibold">Centro de ayuda</div>
-          </div>
-          <div className="text-white/40">›</div>
-        </button>
-        <div className="h-px bg-white/10" />
-        <button
-          type="button"
-          className="w-full flex items-center justify-between px-4 py-4 hover:bg-white/5 transition"
-          onClick={() => showToast('success', 'Servicio al cliente: próximamente')}
-        >
-          <div className="flex items-center gap-3">
-            <Headset className="w-5 h-5 text-white/70" />
-            <div className="text-sm font-semibold">Contactar servicio al cliente</div>
-          </div>
-          <div className="text-white/40">›</div>
-        </button>
       </div>
 
       <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
