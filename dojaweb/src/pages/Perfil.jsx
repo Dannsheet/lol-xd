@@ -194,7 +194,7 @@ const Perfil = () => {
         {isAdmin ? (
           <button
             type="button"
-            onClick={() => showToast('success', 'Administración: próximamente')}
+            onClick={() => navigate('/admin')}
             className="text-sm text-white/60 hover:text-doja-light-cyan transition"
           >
             Administrar
