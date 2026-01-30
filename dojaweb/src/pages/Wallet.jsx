@@ -430,11 +430,6 @@ const WalletPage = () => {
 
   const normalizedHistory = useMemo(() => (historyItems ? historyItems.map(normalizeMov) : []), [historyItems, normalizeMov]);
 
-  const depositosOtros = useMemo(
-    () => normalizedHistory.filter((m) => m.kind === 'deposito' && m.status !== 'pendiente'),
-    [normalizedHistory],
-  );
-
   const retirosPendientes = useMemo(
     () => normalizedHistory.filter((m) => m.kind === 'retiro' && m.status === 'pendiente'),
     [normalizedHistory],
@@ -470,6 +465,28 @@ const WalletPage = () => {
     if (!Number.isFinite(total) || total <= 0) return false;
     return total > withdrawBalanceNumber;
   }, [withdrawValidated?.total, withdrawBalanceNumber]);
+
+  useEffect(() => {
+    if (!retirosPendientes.length) return undefined;
+    const id = window.setInterval(() => {
+      loadCuenta().catch(() => {
+        // ignore
+      });
+    }, 15_000);
+    return () => window.clearInterval(id);
+  }, [loadCuenta, retirosPendientes.length]);
+
+  useEffect(() => {
+    const targetId = withdrawCreated?.id;
+    if (!targetId) return;
+
+    const match = normalizedHistory.find((m) => m.kind === 'retiro' && String(m.id) === String(targetId));
+    if (!match?.status) return;
+
+    const current = String(withdrawCreated?.estado || 'pendiente').toLowerCase();
+    if (String(match.status).toLowerCase() === current) return;
+    setWithdrawCreated((prev) => (prev ? { ...prev, estado: match.status } : prev));
+  }, [normalizedHistory, withdrawCreated?.estado, withdrawCreated?.id]);
 
   return (
     <div className="min-h-screen bg-doja-bg text-white">
@@ -643,32 +660,6 @@ const WalletPage = () => {
             </div>
           </div>
         )}
-
-        <div className="mt-4 rounded-2xl bg-white/5 border border-white/10 p-4">
-          <div className="text-[13px] font-semibold">Depósitos</div>
-          {historyLoading ? (
-            <div className="mt-2 text-[12px] text-white/60">Cargando...</div>
-          ) : depositosOtros.length ? (
-            <div className="mt-3 space-y-2">
-              {depositosOtros.slice(0, 10).map((m, idx) => (
-                <div key={m.id || idx} className="rounded-xl border border-white/10 bg-doja-bg/30 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-[12px] text-white/80">depósito</div>
-                    <div className="text-[12px] text-doja-cyan font-semibold">{m.status || '—'}</div>
-                  </div>
-                  <div className="mt-1 text-[11px] text-white/60 font-mono break-words">
-                    {m.amount != null ? `monto: ${m.amount.toFixed(2)} USDT` : ''}{m.createdAt ? ` · ${String(m.createdAt)}` : ''}
-                  </div>
-                  {m.descripcion ? (
-                    <div className="mt-1 text-[11px] text-white/60 break-words">{String(m.descripcion)}</div>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-2 text-[12px] text-white/60">No tienes depósitos</div>
-          )}
-        </div>
 
         <div className="mt-4 rounded-2xl bg-white/5 border border-white/10 p-4">
           <div className="text-[13px] font-semibold">Retiros</div>
