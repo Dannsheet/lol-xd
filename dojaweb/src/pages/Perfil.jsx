@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Copy, Headset, Send, Users } from 'lucide-react';
+import { Copy, Headset, LogOut, Send, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { getCuentaInfo, getMe, getMyReferralProfile, getMyReferralStats } from '../lib/api.js';
+import { supabase } from '../supabaseClient';
 import './Perfil.css';
 
 const Perfil = () => {
@@ -59,6 +60,14 @@ const Perfil = () => {
       // ignore
     }
   }, []);
+
+  const handleSignOut = useCallback(async () => {
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      navigate('/', { replace: true });
+    }
+  }, [navigate]);
 
   const inviteCode = useMemo(() => (serverInviteCode ? serverInviteCode : ''), [serverInviteCode]);
 
@@ -298,6 +307,18 @@ const Perfil = () => {
           <div className="flex items-center gap-3">
             <Users className="w-5 h-5 text-white/70" />
             <div className="text-sm font-semibold">Grupo de Telegram</div>
+          </div>
+          <div className="text-white/40">›</div>
+        </button>
+        <div className="h-px bg-white/10" />
+        <button
+          type="button"
+          className="w-full flex items-center justify-between px-4 py-4 hover:bg-white/5 transition"
+          onClick={handleSignOut}
+        >
+          <div className="flex items-center gap-3">
+            <LogOut className="w-5 h-5 text-white/70" />
+            <div className="text-sm font-semibold">Cerrar sesión</div>
           </div>
           <div className="text-white/40">›</div>
         </button>
