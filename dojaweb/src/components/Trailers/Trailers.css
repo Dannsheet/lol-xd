@@ -204,13 +204,17 @@
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 0 18px rgba(139, 92, 246, 0.65), 0 0 62px rgba(139, 92, 246, 0.4);
+  box-shadow:
+    0 0 18px rgba(139, 92, 246, 0.65),
+    0 0 62px rgba(139, 92, 246, 0.4);
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.35);
 }
 
 .trailers__lockedCta:hover {
   background: rgba(139, 92, 246, 1);
-  box-shadow: 0 0 26px rgba(139, 92, 246, 0.85), 0 0 78px rgba(139, 92, 246, 0.5);
+  box-shadow:
+    0 0 26px rgba(139, 92, 246, 0.85),
+    0 0 78px rgba(139, 92, 246, 0.5);
 }
 
 .trailers__pagination {
@@ -239,4 +243,77 @@
 .trailers__pageInfo {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.65);
+}
+
+.trailers__planPicker {
+  margin: 12px 0 14px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  background: rgba(139, 92, 246, 0.06);
+}
+
+.trailers__planPickerTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 10px;
+}
+
+.trailers__planPickerList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.trailers__planBtn {
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.85),
+    rgba(236, 72, 153, 0.65)
+  );
+  color: rgba(255, 255, 255, 0.96);
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease;
+  box-shadow: 0 0 16px rgba(139, 92, 246, 0.35);
+}
+
+.trailers__planBtn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(236, 72, 153, 0.55);
+  box-shadow:
+    0 0 22px rgba(139, 92, 246, 0.5),
+    0 0 42px rgba(236, 72, 153, 0.25);
+}
+
+.trailers__planBtn:active {
+  transform: translateY(0);
+}
+
+.trailers__planBtn:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.18),
+    0 0 0 6px rgba(139, 92, 246, 0.35);
+}
+
+.trailers__planBtn--active {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 1),
+    rgba(236, 72, 153, 0.9)
+  );
+  box-shadow:
+    0 0 28px rgba(139, 92, 246, 0.75),
+    0 0 68px rgba(236, 72, 153, 0.25);
 }
