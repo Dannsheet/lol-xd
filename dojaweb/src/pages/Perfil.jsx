@@ -156,7 +156,8 @@ const Perfil = () => {
 
       return [
         { label: 'Valor Recargado (USDT)', value: Number(recargaAcumulada || 0).toFixed(2) },
-        { label: 'Videos + Referidos', value: Number(gananciasTotales || 0).toFixed(2) },
+        { label: 'Ingresos totales', value: Number(gananciasTotales || 0).toFixed(2) },
+        { label: 'Comisión de video', value: (Number.isFinite(baseVideos) ? baseVideos : 0).toFixed(2) },
         { label: 'Referidos', value: (Number.isFinite(baseTotalComisiones) ? baseTotalComisiones : 0).toFixed(2) },
         { label: 'Valor retirado', value: Number(retiroAcumulativo || 0).toFixed(2) },
         { label: 'Tamaño total del equipo', value: String(teamSize || 0) },
