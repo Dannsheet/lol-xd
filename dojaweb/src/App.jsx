@@ -13,6 +13,7 @@ import Admin from './pages/Admin';
 import Wallet from './pages/Wallet';
 import Withdraw from './pages/Withdraw';
 import Tutorial from './pages/Tutorial';
+import ResetPassword from './pages/ResetPassword';
 import NotFound from './pages/NotFound';
 import AdminRoute from './routes/AdminRoute';
 
@@ -59,6 +60,7 @@ function App() {
         <ScrollRestore />
         <Routes>
           <Route path="/" element={<AuthPage />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<AdminRoute />}>
               <Route path="/admin" element={<Admin />} />

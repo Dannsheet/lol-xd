@@ -25,6 +25,31 @@ const Auth = () => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    const targetEmail = String(email || '').trim();
+    if (!targetEmail) {
+      showToast('error', 'Ingresa tu correo para recuperar la contraseña');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const redirectTo = `${window.location.origin}/reset-password`;
+      const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, { redirectTo });
+      if (error) {
+        console.error('resetPasswordForEmail error:', error);
+        showToast('error', formatSupabaseError(error));
+        return;
+      }
+      showToast('success', 'Revisa tu correo para restablecer tu contraseña');
+    } catch (err) {
+      console.error('resetPasswordForEmail exception:', err);
+      showToast('error', formatSupabaseError(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const [isLogin, setIsLogin] = useState(() => {
     try {
       return localStorage.getItem(VISIT_KEY) === '1';
@@ -346,6 +371,31 @@ const Auth = () => {
                   </svg>
                 </button>
               </div>
+              {isLogin ? (
+                <div style={{
+                  marginTop: '8px',
+                  display: 'flex',
+                  justifyContent: 'flex-end'
+                }}>
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    disabled={loading}
+                    style={{
+                      color: '#8B5CF6',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      fontSize: '11px',
+                      textDecoration: 'underline',
+                      opacity: loading ? 0.7 : 1
+                    }}
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             {!isLogin && (

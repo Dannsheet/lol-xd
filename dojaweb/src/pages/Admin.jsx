@@ -167,6 +167,25 @@ const Admin = () => {
         </div>
       </div>
 
+      <div className="mt-4 rounded-2xl border border-white/10 bg-doja-dark/70 p-4">
+        <div className="text-xs text-white/60">GANANCIAS GENERALES (creadores)</div>
+        <div className="mt-2 text-2xl font-bold text-doja-cyan">{Number(summary?.creators_earnings_total ?? 0).toFixed(2)} USDT</div>
+        <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-xl border border-white/10 bg-doja-bg/30 p-3">
+            <div className="text-[11px] text-white/60">Sobrantes no retirables (saldo interno)</div>
+            <div className="mt-1 text-sm font-semibold text-doja-cyan">{Number(summary?.creators_breakdown?.saldo_interno_total ?? 0).toFixed(2)} USDT</div>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-doja-bg/30 p-3">
+            <div className="text-[11px] text-white/60">Comisiones de retiro (1 USDT c/u)</div>
+            <div className="mt-1 text-sm font-semibold text-doja-cyan">{Number(summary?.creators_breakdown?.withdrawal_fees_total ?? 0).toFixed(2)} USDT</div>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-doja-bg/30 p-3">
+            <div className="text-[11px] text-white/60">Retiros confirmados (neto pagado)</div>
+            <div className="mt-1 text-sm font-semibold text-white/80">{Number(summary?.creators_breakdown?.withdrawals_confirmed_neto_total ?? 0).toFixed(2)} USDT</div>
+          </div>
+        </div>
+      </div>
+
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="rounded-2xl border border-white/10 bg-doja-dark/70 p-4">
           <div className="flex items-center justify-between gap-3">
@@ -242,6 +261,16 @@ const Admin = () => {
                 <div className="mt-1 text-xs text-white/60 font-mono break-all">{selectedUser.user.id}</div>
               </div>
 
+              {selectedUser?.wallet?.deposit_address ? (
+                <div className="mt-3 rounded-xl border border-white/10 bg-doja-bg/30 p-3">
+                  <div className="text-xs text-white/60">Red única (deposit_address)</div>
+                  <div className="mt-1 text-xs text-white/90 font-mono break-all">{String(selectedUser.wallet.deposit_address)}</div>
+                  {selectedUser?.wallet?.network ? (
+                    <div className="mt-1 text-[11px] text-white/50">network: {String(selectedUser.wallet.network)}</div>
+                  ) : null}
+                </div>
+              ) : null}
+
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-white/10 bg-doja-bg/30 p-3">
                   <div className="text-xs text-white/60">Generado (videos + referidos)</div>
@@ -259,6 +288,28 @@ const Admin = () => {
                   <div className="text-xs text-white/60">Retiros</div>
                   <div className="mt-1 text-sm font-semibold text-doja-cyan">{Number(selectedTotals?.withdrawals_count ?? 0)}</div>
                 </div>
+                <div className="rounded-xl border border-white/10 bg-doja-bg/30 p-3">
+                  <div className="text-xs text-white/60">Retirado (confirmado)</div>
+                  <div className="mt-1 text-sm font-semibold text-doja-cyan">{Number(selectedTotals?.withdrawals_confirmed_neto_total ?? 0).toFixed(2)} USDT</div>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <div className="text-xs text-white/60">Ganado por planes (videos vistos)</div>
+                {Array.isArray(selectedUser?.earnings_by_plan) && selectedUser.earnings_by_plan.length ? (
+                  <div className="mt-2 space-y-2">
+                    {selectedUser.earnings_by_plan.slice(0, 12).map((row, idx) => (
+                      <div key={`${row.plan_id}-${idx}`} className="rounded-xl border border-white/10 bg-doja-bg/30 p-3">
+                        <div className="text-sm text-white/90">{row.plan_nombre || `Plan ${row.plan_id}`}</div>
+                        <div className="mt-1 text-xs text-white/60 font-mono">
+                          vistos: {Number(row.views_count ?? 0)} · ganancia: {Number(row.ganancia_diaria ?? 0).toFixed(2)} · total: {Number(row.earned_total ?? 0).toFixed(2)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-2 text-sm text-white/60">Sin datos.</div>
+                )}
               </div>
 
               <div className="mt-4">
