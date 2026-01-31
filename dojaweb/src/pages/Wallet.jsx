@@ -7,6 +7,7 @@ import {
   createVipIntent,
   getCuentaInfo,
   getVipCurrent,
+  resetWithdrawPin,
   setWithdrawPin,
   withdrawCreate,
   withdrawValidate,
@@ -59,6 +60,11 @@ const WalletPage = () => {
   const [withdrawCreated, setWithdrawCreated] = useState(null);
   const [withdrawForm, setWithdrawForm] = useState({ monto: '', red: 'BEP20-USDT', direccion: '', pin: '' });
   const [withdrawNeedsPinSetup, setWithdrawNeedsPinSetup] = useState(false);
+  const [withdrawPinFailedAttempts, setWithdrawPinFailedAttempts] = useState(0);
+  const [withdrawPinResetOpen, setWithdrawPinResetOpen] = useState(false);
+  const [withdrawPinResetPassword, setWithdrawPinResetPassword] = useState('');
+  const [withdrawPinResetNewPin, setWithdrawPinResetNewPin] = useState('');
+  const [withdrawPinResetConfirmPin, setWithdrawPinResetConfirmPin] = useState('');
 
   useEffect(() => {
     if (!toast) return;
@@ -188,9 +194,6 @@ const WalletPage = () => {
   const withdrawFees = useMemo(
     () => ({
       'BEP20-USDT': 1,
-      'TRC20-USDT': 1,
-      'ETH-USDT': 8,
-      'POLYGON-USDT': 0.5,
     }),
     [],
   );
@@ -204,11 +207,17 @@ const WalletPage = () => {
     setWithdrawValidated(null);
     setWithdrawCreated(null);
     setWithdrawNeedsPinSetup(false);
+    setWithdrawPinFailedAttempts(0);
+    setWithdrawPinResetOpen(false);
+    setWithdrawPinResetPassword('');
+    setWithdrawPinResetNewPin('');
+    setWithdrawPinResetConfirmPin('');
   };
 
   const closeWithdraw = () => {
     setWithdrawOpen(false);
     setWithdrawLoading(false);
+    setWithdrawPinResetOpen(false);
   };
 
   const handleCreateDepositAddress = async () => {
@@ -260,9 +269,9 @@ const WalletPage = () => {
 
       if (Number.isFinite(next) && next > prev) {
         setPollingActive(false);
-        showToast('success', 'Balance actualizado');
+        showToast('success', 'Pago confirmado');
       } else {
-        showToast('success', 'Actualizado. Aún no se confirma el depósito (intenta en unos minutos).');
+        showToast('error', 'Pago pendiente. Aún no se confirma el depósito (intenta en unos minutos).');
       }
     } catch (e) {
       console.error('[Wallet] confirm deposit error', e);
@@ -323,15 +332,58 @@ const WalletPage = () => {
       const data = await withdrawValidate({ monto, red: withdrawForm.red, pin: withdrawForm.pin });
       setWithdrawValidated(data || null);
       setWithdrawNeedsPinSetup(false);
+      setWithdrawPinFailedAttempts(0);
       showToast('success', 'Validación correcta');
     } catch (e) {
       console.error('[Wallet] /api/withdraw/validate error', e);
       const msg = String(e?.message || 'No se pudo validar');
+      const intentosRestantes = Number(e?.payload?.intentos_restantes);
+      if (e?.status === 401 && msg.toLowerCase().includes('pin incorrecto') && Number.isFinite(intentosRestantes)) {
+        const attempts = Math.max(0, 3 - intentosRestantes);
+        setWithdrawPinFailedAttempts(attempts);
+      }
       if (String(msg).toLowerCase().includes('pin de retiro no configurado')) {
         setWithdrawNeedsPinSetup(true);
       }
       showToast('error', msg);
       setWithdrawValidated(null);
+    } finally {
+      setWithdrawLoading(false);
+    }
+  };
+
+  const handleWithdrawResetPin = async () => {
+    const pwd = String(withdrawPinResetPassword || '').trim();
+    const newPin = String(withdrawPinResetNewPin || '').trim();
+    const confirmPin = String(withdrawPinResetConfirmPin || '').trim();
+
+    if (!pwd) {
+      showToast('error', 'Ingresa tu contraseña');
+      return;
+    }
+
+    if (!newPin || newPin.length < 4) {
+      showToast('error', 'PIN inválido (mínimo 4 dígitos)');
+      return;
+    }
+
+    if (newPin !== confirmPin) {
+      showToast('error', 'Los PIN no coinciden');
+      return;
+    }
+
+    setWithdrawLoading(true);
+    try {
+      await resetWithdrawPin({ password: pwd, pin: newPin });
+      setWithdrawPinFailedAttempts(0);
+      setWithdrawPinResetOpen(false);
+      setWithdrawPinResetPassword('');
+      setWithdrawPinResetNewPin('');
+      setWithdrawPinResetConfirmPin('');
+      showToast('success', 'PIN actualizado. Ahora valida tu retiro.');
+    } catch (e) {
+      console.error('[Wallet] reset pin error', e);
+      showToast('error', e?.message || 'No se pudo reiniciar el PIN');
     } finally {
       setWithdrawLoading(false);
     }
@@ -759,11 +811,9 @@ const WalletPage = () => {
                   value={withdrawForm.red}
                   onChange={(e) => setWithdrawForm((p) => ({ ...p, red: e.target.value }))}
                   className="w-full rounded-xl bg-doja-bg/30 border border-white/10 px-4 py-3 text-sm outline-none focus:border-doja-cyan/50"
+                  disabled
                 >
                   <option value="BEP20-USDT">BEP20-USDT</option>
-                  <option value="TRC20-USDT">TRC20-USDT</option>
-                  <option value="ETH-USDT">ETH-USDT</option>
-                  <option value="POLYGON-USDT">POLYGON-USDT</option>
                 </select>
               </div>
 
@@ -786,8 +836,75 @@ const WalletPage = () => {
                   placeholder="1234"
                   className="w-full rounded-xl bg-doja-bg/30 border border-white/10 px-4 py-3 text-sm outline-none focus:border-doja-cyan/50"
                 />
+                {withdrawPinFailedAttempts >= 2 ? (
+                  <button
+                    type="button"
+                    onClick={() => setWithdrawPinResetOpen(true)}
+                    className="mt-2 text-[11px] text-doja-cyan font-semibold hover:text-white transition"
+                    disabled={withdrawLoading}
+                  >
+                    ¿Olvidaste tu PIN? Reiniciarlo
+                  </button>
+                ) : null}
               </div>
             </div>
+
+            {withdrawPinResetOpen ? (
+              <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="text-xs text-white/70">Reiniciar PIN</div>
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <label className="block text-xs text-white/70 mb-2">Contraseña</label>
+                    <input
+                      type="password"
+                      value={withdrawPinResetPassword}
+                      onChange={(e) => setWithdrawPinResetPassword(e.target.value)}
+                      placeholder="Tu contraseña"
+                      className="w-full rounded-xl bg-doja-bg/30 border border-white/10 px-4 py-3 text-sm outline-none focus:border-doja-cyan/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-white/70 mb-2">Nuevo PIN</label>
+                    <input
+                      type="password"
+                      value={withdrawPinResetNewPin}
+                      onChange={(e) => setWithdrawPinResetNewPin(e.target.value)}
+                      placeholder="1234"
+                      className="w-full rounded-xl bg-doja-bg/30 border border-white/10 px-4 py-3 text-sm outline-none focus:border-doja-cyan/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-white/70 mb-2">Confirmar nuevo PIN</label>
+                    <input
+                      type="password"
+                      value={withdrawPinResetConfirmPin}
+                      onChange={(e) => setWithdrawPinResetConfirmPin(e.target.value)}
+                      placeholder="1234"
+                      className="w-full rounded-xl bg-doja-bg/30 border border-white/10 px-4 py-3 text-sm outline-none focus:border-doja-cyan/50"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setWithdrawPinResetOpen(false)}
+                      className="rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 py-3 text-sm font-semibold transition disabled:opacity-50"
+                      disabled={withdrawLoading}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleWithdrawResetPin}
+                      className="rounded-xl bg-doja-cyan/20 hover:bg-doja-cyan/30 border border-doja-cyan/40 py-3 text-sm font-semibold text-doja-cyan transition disabled:opacity-50"
+                      disabled={withdrawLoading}
+                    >
+                      {withdrawLoading ? 'Guardando...' : 'Guardar PIN'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
 
             {withdrawValidated?.ok ? (
               <div className="mt-4 rounded-xl border border-doja-cyan/30 bg-doja-cyan/10 p-3">

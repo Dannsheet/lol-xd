@@ -130,14 +130,32 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithPassword(payload);
       if (error) {
         console.error('signInWithPassword error:', error);
-        showToast('error', formatSupabaseError(error));
+        const msg = String(error?.message || error?.error_description || '').toLowerCase();
+        const code = String(error?.code || '').toLowerCase();
+        if (code === 'invalid_credentials' || msg.includes('invalid login credentials')) {
+          showToast('error', 'Credenciales incorrectas');
+          return;
+        }
+        if (msg.includes('email not confirmed') || msg.includes('correo') && msg.includes('confirm')) {
+          showToast('error', 'Debes confirmar tu correo electrónico antes de iniciar sesión');
+          return;
+        }
+        showToast('error', 'No se pudo iniciar sesión');
         return;
       }
 
       await consumePendingInviteCode();
     } catch (err) {
       console.error('signInWithPassword exception:', err);
-      showToast('error', formatSupabaseError(err));
+      const msg = String(err?.message || err?.error_description || '').toLowerCase();
+      const code = String(err?.code || '').toLowerCase();
+      if (code === 'invalid_credentials' || msg.includes('invalid login credentials')) {
+        showToast('error', 'Credenciales incorrectas');
+      } else if (msg.includes('email not confirmed') || (msg.includes('correo') && msg.includes('confirm'))) {
+        showToast('error', 'Debes confirmar tu correo electrónico antes de iniciar sesión');
+      } else {
+        showToast('error', 'No se pudo iniciar sesión');
+      }
     } finally {
       setLoading(false);
     }
@@ -152,8 +170,14 @@ const Auth = () => {
         return;
       }
 
+      const invite = invitationCode.trim();
+      if (!invite) {
+        showToast('error', 'El código de invitación es obligatorio');
+        return;
+      }
+
       const userData = {
-        invitation_code: invitationCode.trim() || null
+        invitation_code: invite
       };
 
       const payload = { email, password, options: { emailRedirectTo: window.location.origin, data: userData } };
@@ -165,7 +189,7 @@ const Auth = () => {
         return;
       }
 
-      const pending = invitationCode.trim();
+      const pending = invite;
       if (pending) {
         try {
           localStorage.setItem(PENDING_INVITE_KEY, pending);

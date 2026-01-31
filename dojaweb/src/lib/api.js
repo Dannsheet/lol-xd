@@ -122,6 +122,13 @@ export const setWithdrawPin = async (pin) => {
   return apiFetch('/api/set-withdraw-pin', { method: 'POST', body: { pin } });
 };
 
+export const resetWithdrawPin = async ({ password, pin }) => {
+  const { data } = await supabase.auth.getSession();
+  const userId = data?.session?.user?.id;
+  if (!userId) throw new Error('Debes iniciar sesión');
+  return apiFetch('/api/withdraw/pin/reset', { method: 'POST', body: { password, pin } });
+};
+
 export const getUserBalance = async () => {
   try {
     return await apiFetch('/api/user/balance');
