@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 
-const ANNOUNCEMENTS_VERSION = 'v1';
+const ANNOUNCEMENTS_VERSION = 'v2';
 
 const AnnouncementsModal = () => {
   const { user, loading } = useAuth();
@@ -96,7 +96,7 @@ const AnnouncementsModal = () => {
             VIP. ⭐✨
           </div>
 
-          <div>👉 No necesitas experiencia, solo comparte tu enlace y genera ingresos pasivos.</div>
+          <div>👉 No necesitas experiencia, solo comparte tu enlace y genera ingresos calificando videos 🤩.</div>
         </div>
 
         <div className="mt-5 text-center font-bold">📌 ¿Cómo comenzar en DAJO?</div>
@@ -106,26 +106,27 @@ const AnnouncementsModal = () => {
           <div>2️⃣ Registra tu cuenta con correo electrónico válido.</div>
           <div>3️⃣ Verifica tu información en tu correo personal.</div>
           <div>4️⃣ Deposita USDT desde tu exchange o billetera digital.</div>
-          <div>5️⃣ Vincula tu billetera personal (TRC-20 o BEP-20).</div>
+          <div>5️⃣ Vincula tu billetera personal (BEP-20 -- BSC).</div>
         </div>
 
         <div className="mt-5 space-y-2">
           <div>📣 Depósito mínimo: 16 USDT 💸⭐✨</div>
-          <div>📣 Retiro mínimo: 10 USDT 💸⭐✨</div>
+          <div>📣 Retiro mínimo: 11 USDT 💸⭐✨</div>
           <div>📣 Comisión por retiro: $1 💸⭐✨</div>
           <div>📣 Bonificación: 15% en nivel 1 y 1% en nivel 2 y 3 💸⭐✨</div>
         </div>
 
         <div className="mt-5 space-y-2">
           <div>
-            ✔️ Soporte activo: el equipo de atención al cliente de DAJO está disponible para ayudarte en todo
-            momento.
+            ✔️ Soporte activo: el equipo de atención al cliente de DAJO está disponible para ayudarte de 10 am a 6 pm
+            (GMT-5).
           </div>
           <div>📞 Servicio en línea activo</div>
         </div>
 
         <div className="mt-5 space-y-2">
           <div className="font-semibold">🔗 Enlaces oficiales</div>
+          <div>Contacto soporte:</div>
           <a
             className="block text-doja-light-cyan break-words"
             href="https://t.me/dajoweb"
@@ -134,21 +135,32 @@ const AnnouncementsModal = () => {
           >
             Soporte Telegram: t.me/dajoweb
           </a>
+          <div>Canal de Telegram:</div>
           <a
             className="block text-doja-light-cyan break-words"
-            href="https://t.me/canaldajoweb"
+            href="https://t.me/+ilGl4Gd5iX02ZDE5"
             target="_blank"
             rel="noreferrer"
           >
-            Canal Telegram: https://t.me/canaldajoweb
+            Canal de Telegram: t.me/+ilGl4Gd5iX02ZDE5
           </a>
+          <div>Grupo de Telegram:</div>
           <a
             className="block text-doja-light-cyan break-words"
-            href="https://t.me/DajoWebGrupo"
+            href="https://t.me/+7A4MLkKVNQtiN2Nh"
             target="_blank"
             rel="noreferrer"
           >
-            Grupo Telegram: t.me/DajoWebGrupo
+            Grupo de Telegram: t.me/+7A4MLkKVNQtiN2Nh
+          </a>
+          <div>Link de invitacion:</div>
+          <a
+            className="block text-doja-light-cyan break-words"
+            href="https://www.dajoweb.org/?ref=1368AF63"
+            target="_blank"
+            rel="noreferrer"
+          >
+            https://www.dajoweb.org/?ref=1368AF63
           </a>
         </div>
       </div>,
