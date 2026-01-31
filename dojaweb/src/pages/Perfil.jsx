@@ -290,7 +290,7 @@ const Perfil = () => {
         <button
           type="button"
           className="w-full flex items-center justify-between px-4 py-4 hover:bg-white/5 transition"
-          onClick={() => openExternal('https://t.me/canaldajoweb')}
+          onClick={() => openExternal('https://t.me/+ilGl4Gd5iX02ZDE5')}
         >
           <div className="flex items-center gap-3">
             <Send className="w-5 h-5 text-white/70" />
@@ -302,7 +302,7 @@ const Perfil = () => {
         <button
           type="button"
           className="w-full flex items-center justify-between px-4 py-4 hover:bg-white/5 transition"
-          onClick={() => openExternal('https://t.me/DajoWebGrupo')}
+          onClick={() => openExternal('https://t.me/+7A4MLkKVNQtiN2Nh')}
         >
           <div className="flex items-center gap-3">
             <Users className="w-5 h-5 text-white/70" />
