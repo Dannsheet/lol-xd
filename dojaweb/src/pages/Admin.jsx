@@ -1,7 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, RefreshCw, Users } from 'lucide-react';
-import { adminGetSummary, adminGetUserDetail, adminGetUserReferrals, adminGetUsers } from '../lib/api.js';
+import {
+  adminConfirmUserWithdrawal,
+  adminGetSummary,
+  adminGetUserDetail,
+  adminGetUserReferrals,
+  adminGetUsers,
+} from '../lib/api.js';
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -19,6 +25,7 @@ const Admin = () => {
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [selectedLoading, setSelectedLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [confirmingWithdrawalId, setConfirmingWithdrawalId] = useState(null);
   const [selectedReferralsOpen, setSelectedReferralsOpen] = useState(false);
   const [selectedReferralsLoading, setSelectedReferralsLoading] = useState(false);
   const [selectedReferrals, setSelectedReferrals] = useState(null);
@@ -79,6 +86,7 @@ const Admin = () => {
   const selectedTotals = selectedUser?.totals ?? null;
   const selectedTeam = selectedUser?.team ?? null;
   const selectedPlans = Array.isArray(selectedUser?.plans) ? selectedUser.plans : [];
+  const pendingWithdrawals = Array.isArray(selectedUser?.pending_withdrawals) ? selectedUser.pending_withdrawals : [];
 
   const teamSize = useMemo(() => {
     const niveles = Array.isArray(selectedTeam?.niveles) ? selectedTeam.niveles : [];
@@ -98,6 +106,20 @@ const Admin = () => {
       setSelectedReferrals(null);
     } finally {
       setSelectedReferralsLoading(false);
+    }
+  };
+
+  const handleConfirmWithdrawal = async (withdrawalId) => {
+    if (!selectedUserId || !withdrawalId) return;
+    setConfirmingWithdrawalId(withdrawalId);
+    try {
+      await adminConfirmUserWithdrawal({ userId: selectedUserId, withdrawalId });
+      showToast('success', 'Retiro confirmado');
+      await loadSelectedUser(selectedUserId);
+    } catch (e) {
+      showToast('error', e?.message || 'No se pudo confirmar el retiro');
+    } finally {
+      setConfirmingWithdrawalId(null);
     }
   };
 
@@ -325,6 +347,44 @@ const Admin = () => {
                   </div>
                 ) : (
                   <div className="mt-2 text-sm text-white/60">Sin planes.</div>
+                )}
+              </div>
+
+              <div className="mt-4">
+                <div className="text-xs text-white/60">Retiros pendientes</div>
+                {pendingWithdrawals.length ? (
+                  <div className="mt-2 space-y-2">
+                    {pendingWithdrawals.slice(0, 20).map((w) => (
+                      <div key={w.id} className="rounded-xl border border-white/10 bg-doja-bg/30 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-sm text-white/90 break-words">{String(w.red || '—')}</div>
+                            <div className="mt-1 text-[11px] text-white/60 font-mono break-all">{String(w.id)}</div>
+                            <div className="mt-1 text-[11px] text-white/60 font-mono break-all">
+                              estado: {String(w.estado || '—')} · total: {Number(w.total ?? w.monto ?? 0).toFixed(2)}
+                            </div>
+                            {w.direccion ? (
+                              <div className="mt-1 text-[11px] text-white/50 font-mono break-all">destino: {String(w.direccion)}</div>
+                            ) : null}
+                            {w.tx_hash ? (
+                              <div className="mt-1 text-[11px] text-white/50 font-mono break-all">tx: {String(w.tx_hash)}</div>
+                            ) : null}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleConfirmWithdrawal(w.id)}
+                            className="shrink-0 rounded-xl bg-doja-cyan/20 hover:bg-doja-cyan/30 border border-doja-cyan/40 px-3 py-2 text-xs font-semibold text-doja-cyan transition disabled:opacity-50"
+                            disabled={Boolean(confirmingWithdrawalId) || selectedLoading}
+                          >
+                            {confirmingWithdrawalId === w.id ? 'Confirmando...' : 'Marcar confirmado'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-2 text-sm text-white/60">Sin retiros pendientes.</div>
                 )}
               </div>
 

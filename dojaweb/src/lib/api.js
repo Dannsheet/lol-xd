@@ -97,6 +97,15 @@ export const adminGetUserReferrals = (userId) => {
   return apiFetch(`/api/admin/users/${encodeURIComponent(String(userId))}/referrals`);
 };
 
+export const adminConfirmUserWithdrawal = ({ userId, withdrawalId }) => {
+  if (!userId) throw new Error('Falta userId');
+  if (!withdrawalId) throw new Error('Falta withdrawalId');
+  return apiFetch(
+    `/api/admin/users/${encodeURIComponent(String(userId))}/withdrawals/${encodeURIComponent(String(withdrawalId))}/confirm`,
+    { method: 'POST' },
+  );
+};
+
 export const getWalletHistory = () => apiFetch('/api/wallet/history');
 
 export const createDepositAddress = () => apiFetch('/api/deposit/address', { method: 'POST' });
