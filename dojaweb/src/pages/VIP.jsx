@@ -1,9 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Crown, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
 import { useAuth } from '../hooks/useAuth';
-import { buyVip, createVipIntent, getCuentaInfo, getMyPlan, getMyPlans, getVideosStatus } from '../lib/api.js';
+import { apiFetch, buyVip, createVipIntent, getCuentaInfo, getMyPlan, getMyPlans, getVideosStatus } from '../lib/api.js';
 import './VIP.css';
 
 const VIP = () => {
@@ -124,13 +123,7 @@ const VIP = () => {
     setLoadError(null);
     try {
       let latestSubs = [];
-      const { data: planesData, error: planesError } = await supabase
-        .from('planes')
-        .select('id,nombre,precio,limite_tareas,ganancia_diaria')
-        .order('id', { ascending: true });
-
-      if (planesError) throw planesError;
-
+      const planesData = await apiFetch('/api/vip/planes');
       setPlans(Array.isArray(planesData) ? planesData : []);
 
       const cuenta = await getCuentaInfo();
