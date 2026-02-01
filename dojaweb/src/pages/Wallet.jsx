@@ -309,9 +309,10 @@ const WalletPage = () => {
     const fee = Number(withdrawFees?.[withdrawForm.red]);
     if (!Number.isFinite(fee) || fee <= 0) return 'Red no soportada';
 
+    if (monto < 5) return `El retiro mínimo es 5 USDT. Ingresa mínimo ${Number(5).toFixed(2)} USDT`;
+
     const neto = monto - fee;
     if (!Number.isFinite(neto) || neto <= 0) return 'Monto inválido';
-    if (neto < 10) return `El retiro mínimo neto es 10 USDT. Ingresa mínimo ${(10 + fee).toFixed(2)} USDT`;
 
     if (!withdrawForm.direccion.trim()) return 'Debes ingresar una dirección externa';
     if (!withdrawForm.pin.trim()) return 'Debes ingresar el PIN';
@@ -642,7 +643,7 @@ const WalletPage = () => {
 
         {isCuentaActiva ? (
           <div className="mt-3 text-[11px] text-yellow-300">
-            El retiro mínimo neto es 10 USDT. Se descontará comisión de 1 usdt por retiro
+            El retiro mínimo es de 5 USDT. Se descontará comisión de 1 USDT por retiro
           </div>
         ) : null}
 
