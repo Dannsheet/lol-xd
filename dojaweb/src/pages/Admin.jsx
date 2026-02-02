@@ -307,8 +307,13 @@ const Admin = () => {
                   <div className="mt-1 text-sm font-semibold text-doja-cyan">{teamSize}</div>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-doja-bg/30 p-3">
-                  <div className="text-xs text-white/60">Retiros</div>
-                  <div className="mt-1 text-sm font-semibold text-doja-cyan">{Number(selectedTotals?.withdrawals_count ?? 0)}</div>
+                  <div className="text-xs text-white/60">Retiros (confirmados)</div>
+                  <div className="mt-1 text-sm font-semibold text-doja-cyan">
+                    {Number(selectedTotals?.withdrawals_confirmed_count ?? 0)}
+                  </div>
+                  <div className="mt-1 text-[11px] text-white/50">
+                    intentos: {Number(selectedTotals?.withdrawals_count ?? 0)}
+                  </div>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-doja-bg/30 p-3">
                   <div className="text-xs text-white/60">Retirado (confirmado)</div>
