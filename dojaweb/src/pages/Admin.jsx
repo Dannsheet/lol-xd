@@ -183,9 +183,13 @@ const Admin = () => {
           <div className="mt-2 text-2xl font-bold text-doja-cyan">{Number(summary?.earnings_total ?? 0).toFixed(2)} USDT</div>
         </div>
         <div className="rounded-2xl border border-white/10 bg-doja-dark/70 p-4">
-          <div className="text-xs text-white/60">Retiros</div>
+          <div className="text-xs text-white/60">Retiros (confirmados)</div>
           <div className="mt-2 text-2xl font-bold text-doja-cyan">{Number(summary?.withdrawals_count ?? 0)}</div>
           <div className="mt-1 text-xs text-white/60">Monto: {Number(summary?.withdrawals_total ?? 0).toFixed(2)} USDT</div>
+          <div className="mt-1 text-[11px] text-white/50">
+            intentos: {Number(summary?.withdrawals_attempts_count ?? 0)} · monto intentos:{' '}
+            {Number(summary?.withdrawals_attempts_total ?? 0).toFixed(2)} USDT
+          </div>
         </div>
       </div>
 
