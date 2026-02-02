@@ -162,10 +162,14 @@ const Perfil = () => {
       const gananciasTotales =
         (Number.isFinite(baseReferidos) ? baseReferidos : 0) +
         (Number.isFinite(baseVideos) ? baseVideos : 0);
+      const baseRetirado = Number(retiroAcumulativo || 0);
+      const valorActualRaw = (Number(gananciasTotales) || 0) - (Number(baseRetirado) || 0);
+      const valorActual = Number.isFinite(valorActualRaw) ? valorActualRaw : 0;
 
       return [
         { label: 'Valor Recargado (USDT)', value: Number(recargaAcumulada || 0).toFixed(2) },
         { label: 'Ingresos totales', value: Number(gananciasTotales || 0).toFixed(2) },
+        { label: 'Valor actual', value: Number(valorActual || 0).toFixed(2) },
         { label: 'Comisión de video', value: (Number.isFinite(baseVideos) ? baseVideos : 0).toFixed(2) },
         { label: 'Referidos', value: (Number.isFinite(baseTotalComisiones) ? baseTotalComisiones : 0).toFixed(2) },
         { label: 'Valor retirado', value: Number(retiroAcumulativo || 0).toFixed(2) },
