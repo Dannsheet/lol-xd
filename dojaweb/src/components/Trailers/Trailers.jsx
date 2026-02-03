@@ -36,6 +36,8 @@ const Trailers = ({ perPage = 12 }) => {
   const [vipChecking, setVipChecking] = useState(true);
   const [vipActive, setVipActive] = useState(false);
   const [dailyStatus, setDailyStatus] = useState(null);
+  const [nowTs, setNowTs] = useState(() => Date.now());
+  const [autoRefreshIso, setAutoRefreshIso] = useState(null);
   const [selectedPlanId, setSelectedPlanId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -277,6 +279,44 @@ const Trailers = ({ perPage = 12 }) => {
     return plans.find((p) => Number(p?.plan_id) === Number(selectedPlanId)) || plans[0] || null;
   }, [dailyStatus, selectedPlanId]);
 
+  const nextAvailableAtIso = useMemo(() => {
+    return (
+      currentPlanInfo?.next_available_at ??
+      dailyStatus?.next_available_at ??
+      null
+    );
+  }, [currentPlanInfo?.next_available_at, dailyStatus?.next_available_at]);
+
+  const countdown = useMemo(() => {
+    if (!nextAvailableAtIso) return null;
+    const nextMs = new Date(String(nextAvailableAtIso)).getTime();
+    if (!Number.isFinite(nextMs)) return null;
+    const diffMs = Math.max(0, nextMs - Number(nowTs || 0));
+    const totalSeconds = Math.floor(diffMs / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return { diffMs, hours, minutes, seconds, nextMs };
+  }, [nextAvailableAtIso, nowTs]);
+
+  useEffect(() => {
+    if (!vipActive) return;
+    if (!nextAvailableAtIso) return;
+    setNowTs(Date.now());
+    const id = window.setInterval(() => setNowTs(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [nextAvailableAtIso, vipActive]);
+
+  useEffect(() => {
+    if (!vipActive) return;
+    if (!nextAvailableAtIso) return;
+    if (!countdown) return;
+    if (countdown.diffMs > 0) return;
+    if (autoRefreshIso === nextAvailableAtIso) return;
+    setAutoRefreshIso(nextAvailableAtIso);
+    getVideosStatus().then(setDailyStatus).catch(() => {});
+  }, [autoRefreshIso, countdown, nextAvailableAtIso, vipActive]);
+
   return (
     <section className="trailers">
       <div className="trailers__header">
@@ -316,6 +356,15 @@ const Trailers = ({ perPage = 12 }) => {
           </div>
           {currentPlanInfo && typeof currentPlanInfo.recompensa === 'number' ? (
             <div className="trailers__lockedText">Recompensa: {Number(currentPlanInfo.recompensa).toFixed(2)} USDT</div>
+          ) : null}
+          {vipActive && currentPlanInfo && currentPlanInfo.puede_ver === false && countdown && countdown.diffMs > 0 ? (
+            <div className="trailers__countdown" role="status" aria-live="polite">
+              <span className="trailers__countdownLabel">Próximo video en</span>
+              <span className="trailers__countdownValue">
+                {String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}:
+                {String(countdown.seconds).padStart(2, '0')}
+              </span>
+            </div>
           ) : null}
           <button type="button" className="trailers__lockedCta" onClick={() => navigate('/vip')}>
             Ver planes VIP
