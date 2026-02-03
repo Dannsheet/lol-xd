@@ -173,19 +173,24 @@ const Promocion = () => {
         const nextTotalGanado = Number(cuenta?.total_ganado ?? cuenta?.totalGanado ?? 0);
         setTotalGanado(Number.isFinite(nextTotalGanado) ? nextTotalGanado : 0);
 
-        const now = new Date();
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
-        const rows = Array.isArray(movimientos) ? movimientos : [];
-        const hoy = rows.reduce((acc, m) => {
-          const ts = m?.creado_en ? new Date(String(m.creado_en)).getTime() : NaN;
-          if (!Number.isFinite(ts)) return acc;
-          if (ts < startOfDay.getTime() || ts >= endOfDay.getTime()) return acc;
-          const monto = Number(m?.monto ?? 0);
-          if (!Number.isFinite(monto) || monto <= 0) return acc;
-          return acc + monto;
-        }, 0);
-        setUserIngresosHoy(Number.isFinite(hoy) ? hoy : 0);
+        const serverGanadoHoy = Number(cuenta?.ganado_hoy ?? cuenta?.ganadoHoy ?? NaN);
+        if (Number.isFinite(serverGanadoHoy)) {
+          setUserIngresosHoy(serverGanadoHoy);
+        } else {
+          const now = new Date();
+          const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+          const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+          const rows = Array.isArray(movimientos) ? movimientos : [];
+          const hoy = rows.reduce((acc, m) => {
+            const ts = m?.creado_en ? new Date(String(m.creado_en)).getTime() : NaN;
+            if (!Number.isFinite(ts)) return acc;
+            if (ts < startOfDay.getTime() || ts >= endOfDay.getTime()) return acc;
+            const monto = Number(m?.monto ?? 0);
+            if (!Number.isFinite(monto) || monto <= 0) return acc;
+            return acc + monto;
+          }, 0);
+          setUserIngresosHoy(Number.isFinite(hoy) ? hoy : 0);
+        }
 
         setLoadError('');
         const niveles = Array.isArray(resp?.niveles) ? resp.niveles : [];
